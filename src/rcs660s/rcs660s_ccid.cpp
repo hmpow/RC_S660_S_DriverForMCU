@@ -143,6 +143,13 @@ void parseCCIDresponse_RDR_to_PC_Escape(const uint8_t* inputCCIDarr, const uint3
     for(uint32_t i = 0; i < dwLength - ABDATA_START_OFFSET; i++){
         abData[i] = inputCCIDarr[i + ABDATA_START_OFFSET];
     }
+
+    //組み立てたデータをAPDU層に引き継ぎ
+    
+
+    free(abData);
+
+
     return;
 }
 

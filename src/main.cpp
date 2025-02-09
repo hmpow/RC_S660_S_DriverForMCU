@@ -45,4 +45,18 @@ void loop() {
     debugPrintMsg("RX NO DATA");
   }
   debugPrintMsg("\n-----\n"); 
+
+ #if 0 
+  debugPrintMsg("\nTEST debugPrintCCIDresponse_bError\n"); 
+  debugPrintMsg("\n-----\n"); 
+  debugPrintCCIDresponse_bError(0x81);
+  debugPrintMsg("\n-----\n"); 
+  debugPrintMsg("\nTEST parseCCIDresponse_RDR_to_PC_DataBlock\n"); 
+  const uint8_t testaaa[] = {0x80,0x01,0x00,0x00,0x00,0x00,0x06,0x00,0x00,0x00};
+  parseCCIDresponse_RDR_to_PC_DataBlock(testaaa, 10);
+  const uint8_t testaab[] = {0x81,0x01,0x00,0x00,0x00,0x00,0x06,0x00,0x00,0x00};
+  parseCCIDresponse_RDR_to_PC_DataBlock(testaab, 10);
+  const uint8_t testaac[] = {0x80,0x01};
+  parseCCIDresponse_RDR_to_PC_DataBlock(testaaa, 2);
+#endif
 }

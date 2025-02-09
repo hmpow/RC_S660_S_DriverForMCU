@@ -38,6 +38,12 @@ typedef struct _apdu_command{
     uint8_t Le;
 }APDU_COMMAND;
 
+//APUDコマンドのエラーステータス
+typedef struct _apdu_error_status{
+    uint8_t sw1;
+    uint8_t sw2;
+}APDU_ERROR_STATUS;
+
 //APDUコマンドのDataInに並べる小部屋
 typedef struct _data_object{
     uint16_t Tag;   //2バイトタグに対応させておき8バイトタグはビットマスクで処理前提
