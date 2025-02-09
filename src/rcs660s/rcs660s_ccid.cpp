@@ -147,10 +147,25 @@ void parseCCIDresponse_RDR_to_PC_Escape(const uint8_t* inputCCIDarr, const uint3
 }
 
 //RDR_to_PC_DataBlock CCID コマンドを解析(エラー発生時のみ)
-void parseCCIDresponse_RDR_to_PC_DataBlock(const uint8_t*, const uint32_t){
-    //CCIDコマンドの解析は未実装
+void parseCCIDresponse_RDR_to_PC_DataBlock(const uint8_t* inputCCIDarr, const uint32_t inputCCIDlen){
+    const uint8_t bMessageTypeDataBlock = 0x80;
+    const uint8_t fixLengthTypeDataBlock = 10;
+
+    if(inputCCIDlen < fixLengthTypeDataBlock){
+        debugPrintMsg("ERROR! parseCCIDresponse_RDR_to_PC_DataBlock データが短すぎます\n");
+        return;
+    }
+
+    const uint8_t bMessageTypeInput = inputCCIDarr[0];
+    if(bMessageTypeInput != bMessageTypeDataBlock){
+        debugPrintMsg("ERROR! parseCCIDresponse_RDR_to_PC_DataBlock bMessageTypeが違います\n");
+        return;
+    }
+
+    const uint8_t bSeqTypeInput = inputCCIDarr[6];
     
-    debugPrintMsg("parseCCIDresponse_RDR_to_PC_DataBlock 未実装\n");
+    debugPrintMsg("ERROR Wrong bMassageTaype was received!\nSeqNo = ");
+    debugPrintDec(bSeqTypeInput);
     return;
 
 }
