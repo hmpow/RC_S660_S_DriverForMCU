@@ -7,17 +7,38 @@
 //コンストラクタ
 RCS660S_NFC_SEQUENCE::RCS660S_NFC_SEQUENCE(const uint8_t cType){
     card_type = cType;
+    reader_state = READER_RFOFF;
 }
 
 //デストラクタ
 RCS660S_NFC_SEQUENCE::~RCS660S_NFC_SEQUENCE(){
-    //RF Off
-    //End Transparent Session
     return;
 }
 
 
 bool RCS660S_NFC_SEQUENCE::catchCard(void){
+
+    if(reader_state != READER_RFOFF){
+        return false;
+    }
+
+    if(reader_state == READER_RFOFF){
+        //Reset
+        assemblyAPDUcommand_ResetDevice();
+
+        uart_receiver_checkACK();
+        
+
+        //Start Transparent Session
+
+        //Switch Protocol TypeB AutoActivate
+
+        //Transparent Exchange TransmissionAndReceptionFlag
+
+        //RF On
+        assemblyAPDUcommand_ManageSession_TrunOnRfField();
+    }
+
     bool ret = false;
     switch (card_type)
     {
@@ -54,7 +75,10 @@ bool RCS660S_NFC_SEQUENCE::catchCard_TypeB(void){
 
 
 void RCS660S_NFC_SEQUENCE::releaseCard(void){
-    //End Transparent Session
     //RF Off
+    assemblyAPDUcommand_ManageSession_TrunOffRfField();
+
+    //End Transparent Session
+    assemblyAPDUcommand_ManageSession_EndTransparentSession();
     return;
 }

@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "rcs660s_apdu.h"
+#include "rcs660s_uart.h"
 
 // Your code goes here
 
@@ -18,8 +20,18 @@ class RCS660S_NFC_SEQUENCE {
         ~RCS660S_NFC_SEQUENCE();
         bool catchCard(void);
         void communicateNFC(const uint8_t*, const uint16_t, uint8_t*, uint16_t*);
+        
     private:
         uint8_t card_type;
+
+        enum READER_STATE{
+             READER_RFOFF,
+             READER_SEARCH,
+             READER_COMMUNICATE,
+             READER_SLEEP
+        };
+        enum READER_STATE reader_state;
+
         //bool catchCard_TypeA(void);
         bool catchCard_TypeB(void);
         //bool catchCard_TypeV(void);
