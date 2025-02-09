@@ -94,3 +94,110 @@ void assemblyCCIDcommand_PC_to_RDR_Abort(uint8_t SeqNo){
 
     return;
 }
+
+
+//RDR_to_PC_Escape CCID コマンドを解析
+void parseCCIDresponse_RDR_to_PC_Escape(const uint8_t* inputCCIDarr, const uint32_t inputCCIDlen){
+    
+    //取り出した受信データはうっかり編集しないためconstつけておくこと
+
+    //定数(マニュアル指定値)
+    const uint8_t bMessageTypeEscape    = 0x83;
+    const uint8_t bMessageTypeDataBlock = 0x80;
+    const uint8_t ABDATA_START_OFFSET   = 10;
+    
+    if(inputCCIDlen < ABDATA_START_OFFSET){
+        debugPrintMsg("ERROR! parseCCIDresponse_RDR_to_PC_Escape データが短すぎます\n");
+        return;
+    }
+
+    const uint8_t bMessageTypeInput = inputCCIDarr[0];
+
+    //その他のエラー(bMassageType=80)ならば引継ぎ
+    if (bMessageTypeInput == bMessageTypeDataBlock){
+        parseCCIDresponse_RDR_to_PC_DataBlock(inputCCIDarr, inputCCIDlen);
+        return;
+    }
+
+    //dwLength リトルエンディアンにして詰め込み
+    const uint32_t dwLength = (uint32_t)((inputCCIDarr[1] << 24) | (inputCCIDarr[2] << 16) | (inputCCIDarr[3] << 8) | inputCCIDarr[4]);
+    const uint8_t  bSlot    = inputCCIDarr[5];
+    const uint8_t  SeqNo    = inputCCIDarr[6];
+    const uint8_t  bStatus  = inputCCIDarr[7];
+    const uint8_t  bError   = inputCCIDarr[8];
+    //inputCCIDarr[9]はRFUのためスキップ
+
+    //bStatusが0x00以外ならエラー
+    if(isOK_CCIDresponse_bStatus(bStatus) == false){
+        debugPrintMsg("ERROR! parseCCIDresponse_RDR_to_PC_Escape bStatusが0x00以外です\n");
+        debugPrintCCIDresponse_bError(bError);
+        return;
+    }
+
+    //データ部分を取り出し
+    uint8_t* abData = (uint8_t*)malloc(sizeof(uint8_t) * (dwLength - ABDATA_START_OFFSET));
+    if(abData == NULL){
+        debugPrintMsg("ERROR! parseCCIDresponse_RDR_to_PC_Escape メモリ確保失敗\n");
+        return;
+    }
+    for(uint32_t i = 0; i < dwLength - ABDATA_START_OFFSET; i++){
+        abData[i] = inputCCIDarr[i + ABDATA_START_OFFSET];
+    }
+    return;
+}
+
+//RDR_to_PC_DataBlock CCID コマンドを解析(エラー発生時のみ)
+void parseCCIDresponse_RDR_to_PC_DataBlock(const uint8_t*, const uint32_t){
+    //CCIDコマンドの解析は未実装
+    
+    debugPrintMsg("parseCCIDresponse_RDR_to_PC_DataBlock 未実装\n");
+    return;
+
+}
+
+bool isOK_CCIDresponse_bStatus(const uint8_t bStatus){
+    
+    const uint8_t bmICCStatus    = bStatus & 0x03; //0b00000011;
+    const uint8_t bmRFU          = bStatus & 0x3C; //0b00111100;
+    const uint8_t bmCommandStatu = bStatus & 0xC0; //0b11000000;
+    
+    if(bmICCStatus == 0x02){
+        return false;
+    }
+
+    if(bmRFU != 0x00){
+        return false;
+    }
+
+    if(bmCommandStatu == 0x00){
+        return true;
+    }else{
+        return false;
+    }
+    return false;
+}
+
+//エラーメッセージ表示
+void debugPrintCCIDresponse_bError(const uint8_t bError){
+    switch(bError){
+        case 0x81:
+            debugPrintMsg("bError: CMD_NOT_ABORTED\n");
+            break;
+        case 0xE0:
+            debugPrintMsg("bError: CMD_SLOT_BUSY\n");
+            break;
+        case 0x00:
+            debugPrintMsg("bError: Command not supported\n");
+            break;
+        case 0x01:
+            debugPrintMsg("bError: Bad dwLength\n");
+            break;
+        case 0x05:
+            debugPrintMsg("bError: bSlot daes not exist\n");
+            break;
+        default:
+            debugPrintMsg("bError: Unknown Error\n");
+            break;
+    }
+    return;
+}
