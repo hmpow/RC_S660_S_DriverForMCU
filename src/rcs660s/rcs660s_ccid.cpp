@@ -1,6 +1,10 @@
 #include "rcs660s_ccid.h"
 
 
+/************************************************************************************/
+/*************************************** 送信 ***************************************/
+/************************************************************************************/
+
 //APDUコマンドから PC_to_RDR_Escape CCID コマンドを組み立て
 //コマンド = 0x68 <LEN lttleEndian 4byte> 0x00 <SeqNo> <RFU 00 00 00> [DATA PACKET]
 void assemblyCCIDcommand_PC_to_RDR_Escape(const uint8_t APDU_data[], const uint32_t APDU_lenBigendian, const uint8_t SeqNo){
@@ -95,11 +99,16 @@ void assemblyCCIDcommand_PC_to_RDR_Abort(uint8_t SeqNo){
     return;
 }
 
+/************************************************************************************/
+/*************************************** 受信 ***************************************/
+/************************************************************************************/
 
 //RDR_to_PC_Escape CCID コマンドを解析
-void parseCCIDresponse_RDR_to_PC_Escape(const uint8_t* inputCCIDarr, const uint32_t inputCCIDlen){
+std::vector<uint8_t> parseCCIDresponse_RDR_to_PC_Escape(const uint8_t* inputCCIDarr, const uint32_t inputCCIDlen){
     
     //取り出した受信データはうっかり編集しないためconstつけておくこと
+
+    std::vector<uint8_t> abData;
 
     //定数(マニュアル指定値)
     const uint8_t bMessageTypeEscape    = 0x83;
@@ -108,7 +117,7 @@ void parseCCIDresponse_RDR_to_PC_Escape(const uint8_t* inputCCIDarr, const uint3
     
     if(inputCCIDlen < ABDATA_START_OFFSET){
         debugPrintMsg("ERROR! parseCCIDresponse_RDR_to_PC_Escape データが短すぎます\n");
-        return;
+        return abData; //空のvectorを返す
     }
 
     const uint8_t bMessageTypeInput = inputCCIDarr[0];
@@ -116,11 +125,11 @@ void parseCCIDresponse_RDR_to_PC_Escape(const uint8_t* inputCCIDarr, const uint3
     //その他のエラー(bMassageType=80)ならば引継ぎ
     if (bMessageTypeInput == bMessageTypeDataBlock){
         parseCCIDresponse_RDR_to_PC_DataBlock(inputCCIDarr, inputCCIDlen);
-        return;
+        return abData; //空のvectorを返す
     }
 
-    //dwLength リトルエンディアンにして詰め込み
-    const uint32_t dwLength = (uint32_t)((inputCCIDarr[1] << 24) | (inputCCIDarr[2] << 16) | (inputCCIDarr[3] << 8) | inputCCIDarr[4]);
+    //dwLength (abDataの長さ) はリトルエンディアンで格納されている
+    const uint32_t dwLength = (uint32_t)(inputCCIDarr[1] | (inputCCIDarr[2] << 8) | (inputCCIDarr[3] << 16) | inputCCIDarr[4] << 24);
     const uint8_t  bSlot    = inputCCIDarr[5];
     const uint8_t  SeqNo    = inputCCIDarr[6];
     const uint8_t  bStatus  = inputCCIDarr[7];
@@ -129,28 +138,29 @@ void parseCCIDresponse_RDR_to_PC_Escape(const uint8_t* inputCCIDarr, const uint3
 
     //bStatusが0x00以外ならエラー
     if(isOK_CCIDresponse_bStatus(bStatus) == false){
-        debugPrintMsg("ERROR! parseCCIDresponse_RDR_to_PC_Escape bStatusが0x00以外です\n");
+        debugPrintMsg("ERROR! parseCCIDresponse_RDR_to_PC_Escape :: bStatusにエラーあり\n");
         debugPrintCCIDresponse_bError(bError);
-        return;
+        return abData; //空のvectorを返す
     }
 
-    //データ部分を取り出し
-    uint8_t* abData = (uint8_t*)malloc(sizeof(uint8_t) * (dwLength - ABDATA_START_OFFSET));
-    if(abData == NULL){
-        debugPrintMsg("ERROR! parseCCIDresponse_RDR_to_PC_Escape メモリ確保失敗\n");
-        return;
+    debugPrintMsg("parseCCIDresponse_RDR_to_PC_Escape :: dwLength (HEX) = ");
+    debugPrintHex(dwLength);
+    debugPrintMsg("\n");
+
+    debugPrintMsg("parseCCIDresponse_RDR_to_PC_Escape :: abData.max_size() (HEX) = ");
+    debugPrintHex(abData.max_size());
+    debugPrintMsg("\n");
+
+    if(dwLength > abData.max_size()){
+        debugPrintMsg("ERROR! parseCCIDresponse_RDR_to_PC_Escape :: dwLengthが長すぎます\n");
+        return abData; //空のvectorを返す
     }
-    for(uint32_t i = 0; i < dwLength - ABDATA_START_OFFSET; i++){
-        abData[i] = inputCCIDarr[i + ABDATA_START_OFFSET];
+
+    for(uint32_t i = 0; i < dwLength; i++){
+        abData.push_back(inputCCIDarr[i + ABDATA_START_OFFSET]);
     }
 
-    //組み立てたデータをAPDU層に引き継ぎ
-    
-
-    free(abData);
-
-
-    return;
+    return abData; //abDataを詰めたvectorを返す
 }
 
 //RDR_to_PC_DataBlock CCID コマンドを解析(エラー発生時のみ)
@@ -183,17 +193,23 @@ bool isOK_CCIDresponse_bStatus(const uint8_t bStatus){
     const uint8_t bmRFU          = bStatus & 0x3C; //0b00111100;
     const uint8_t bmCommandStatu = bStatus & 0xC0; //0b11000000;
     
-    if(bmICCStatus == 0x02){
+    if(bmICCStatus != 0x02){
+        debugPrintMsg("isOK_CCIDresponse_bStatus :: bmICCStatus != 0x02\n");
         return false;
     }
+    debugPrintMsg("isOK_CCIDresponse_bStatus :: bmICCStatus OK!\n");
 
     if(bmRFU != 0x00){
+        debugPrintMsg("isOK_CCIDresponse_bStatus :: bmRFU != 0x02\n");
         return false;
     }
+    debugPrintMsg("isOK_CCIDresponse_bStatus :: bmRFU OK!\n");
 
     if(bmCommandStatu == 0x00){
+        debugPrintMsg("isOK_CCIDresponse_bStatus :: bmCommandStatu OK!\n");
         return true;
     }else{
+        debugPrintMsg("isOK_CCIDresponse_bStatus :: bmCommandStatu != 0x00\n");
         return false;
     }
     return false;
