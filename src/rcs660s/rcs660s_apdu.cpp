@@ -676,13 +676,62 @@ std::vector<uint8_t> getCardResponse_from_TransparentExchangeResponse(const std:
     return cardResponse;
 };
 
-NFC_TYPE_A_ATR getTypeA_ATR_from_SwitchProtocolResponse(const std::vector <APDU_DATA_OBJECT>){
+NFC_TYPE_A_ATR getTypeA_ATR_from_SwitchProtocolResponse(const std::vector <APDU_DATA_OBJECT> dataObjects){
     //今回の作品では使わないため後回し　次回作で使う予定
     NFC_TYPE_A_ATR typeA_ATR = {0};
     return typeA_ATR;
 }
 
-NFC_TYPE_B_ATR getTypeB_ATR_from_SwitchProtocolResponse(const std::vector <APDU_DATA_OBJECT>);
+//4.10章 Switch Protocol
+NFC_TYPE_B_ATR getTypeB_ATR_from_SwitchProtocolResponse(const std::vector <APDU_DATA_OBJECT> dataObjects){
+
+    NFC_TYPE_B_ATR typeB_ATR = {0};
+
+    for(uint8_t dataObjNum = 0; dataObjNum < dataObjects.size(); dataObjNum++){
+        if(dataObjects[dataObjNum].Tag == 0x008F){
+            //protocolInfoしかない
+            if(dataObjects[dataObjNum].Length != 0x03){
+                debugPrintMsg("getTypeB_ATR_from_SwitchProtocolResponse:ERROR! Lengthが不正\n");
+                return typeB_ATR; //ゼロ埋めで返却
+            }
+            for (uint8_t valuePos = 0; valuePos < dataObjects[dataObjNum].Length; valuePos++)
+            {
+                typeB_ATR.atpbProtocolInfo[valuePos] = dataObjects[dataObjNum].Value[valuePos];
+            }
+            return typeB_ATR;
+        }
+        else if(dataObjects[dataObjNum].Tag == 0x5F51){
+            if(dataObjects[dataObjNum].Length != 0x0D){
+                debugPrintMsg("getTypeB_ATR_from_SwitchProtocolResponse:ERROR! Lengthが不正\n");
+                return typeB_ATR; //ゼロ埋めで返却
+            }
+            typeB_ATR.initialHeader = dataObjects[dataObjNum].Value[0];
+            typeB_ATR.t0            = dataObjects[dataObjNum].Value[1];
+            typeB_ATR.td1           = dataObjects[dataObjNum].Value[2];
+            typeB_ATR.td2           = dataObjects[dataObjNum].Value[3];
+
+            const uint8_t atpbAppDataLen      = sizeof(typeB_ATR.atpbAppData)/sizeof(typeB_ATR.atpbAppData[0]);
+            const uint8_t atpbProtocolInfoLen = sizeof(typeB_ATR.atpbProtocolInfo)/sizeof(typeB_ATR.atpbProtocolInfo[0]);
+
+            for (uint8_t valuePos = 0; valuePos < atpbAppDataLen; valuePos++)
+            {
+                typeB_ATR.atpbAppData[valuePos] = dataObjects[dataObjNum].Value[valuePos + 4];
+            }
+
+            for (uint8_t valuePos = 0; valuePos < atpbProtocolInfoLen; valuePos++)
+            {
+                typeB_ATR.atpbProtocolInfo[valuePos] = dataObjects[dataObjNum].Value[valuePos + 4 + atpbAppDataLen];
+            }
+
+            typeB_ATR.tck = dataObjects[dataObjNum].Value[4 + atpbAppDataLen + atpbProtocolInfoLen];
+
+            return typeB_ATR;
+        }
+    }
+
+    debugPrintMsg("getTypeB_ATR_from_SwitchProtocolResponse:ERROR! TypeB-ATRが見つからない\n");
+    return typeB_ATR; //ゼロ埋めで返却
+}
 
 
 /************************************************************************************/
