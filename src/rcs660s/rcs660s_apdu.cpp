@@ -244,7 +244,7 @@ void assemblyAPDUcommand_ResetDevice(void){
 
     //固定値(マニュアル指定値)
     resetDevice_apdu_command.CLA = 0xFF;
-    resetDevice_apdu_command.INS = 0xC2;
+    resetDevice_apdu_command.INS = 0x55;
     resetDevice_apdu_command.P1  = 0x00;
     resetDevice_apdu_command.P2  = 0x00;
     resetDevice_apdu_command.Lc  = LC_NO_DATA;     //Lcなし
@@ -273,8 +273,12 @@ void executeResetDeviceSequence(void){
             debugPrintHex(sprittedDataArr[i]);
           }
         }
+
         debugPrintMsg("ResetDevice SEND ACK!");
-        //uart_sendAck();
+        uart_sendAck_MeaninglessStringsToPreventLinkErrors();
+        
+        //ACK送信後にリーダー側でリセット完了を待つ
+        uart_wait_ms(WAIT_AFTER_RESET);
     }
     return;
 }

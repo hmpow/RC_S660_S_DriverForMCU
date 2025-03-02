@@ -40,6 +40,12 @@
 #define APDU_ERROR_STATUS_LENGTH 2
 
 
+#define MUST_WAIT_AFTER_POWER_DOWN 20 //Power Downの後に待つ時間 > 10ms (マニュアル 4.13章)
+#define MUST_WAIT_AFTER_WAUEKUP    30 //WakeUpの後に待つ時間 > 20ms (マニュアル 4.13章)
+#define WAIT_AFTER_RESET           MUST_WAIT_AFTER_WAUEKUP //Resetの後に待つ時間 マニュアルしていないがウェイクアップと同じにしておく
+
+
+
 //APDUコマンドの構造体
 typedef struct _apdu_command{
     uint8_t CLA;

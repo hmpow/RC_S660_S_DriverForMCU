@@ -92,7 +92,8 @@ void assemblyRcs660sUartCommandFrame(const uint8_t wired_packet_data[], const ui
     arrCommadFrame[START_OFFSET + LEN + 1] = postamble;
 
     //コマンドをカードリーダに送信
-    sendUart(arrCommadFrame, START_OFFSET + LEN + 1);
+    //LENは1始まりなので1足すこと！
+    uart_hw_sendUart(arrCommadFrame, START_OFFSET + LEN + 1 + 1);
 
     free(arrCommadFrame);
 }
@@ -100,8 +101,9 @@ void assemblyRcs660sUartCommandFrame(const uint8_t wired_packet_data[], const ui
 /**
  * @brief ACKを送信
  */
-void uart_sendACK(void){
-  assemblyRcs660sUartCommandFrame(FULL_COMMAND_ACK, sizeof(FULL_COMMAND_ACK)/sizeof(FULL_COMMAND_ACK[0]));
+
+void uart_sendAck_MeaninglessStringsToPreventLinkErrors(void) {
+  uart_hw_sendUart(FULL_COMMAND_ACK, (uint16_t)(sizeof(FULL_COMMAND_ACK)/sizeof(FULL_COMMAND_ACK[0])));
   return;
 }
 

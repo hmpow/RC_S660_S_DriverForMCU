@@ -12,10 +12,12 @@
 //プロトタイプ宣言
 void setupSerial(void);
 
-void sendUart(const uint8_t* , const uint16_t);
+void uart_hw_sendUart(const uint8_t* , const uint16_t);
 
 int uart_hw_available();
 uint8_t uart_hw_read();
+
+void uart_wait_ms(uint16_t);
 
 void debugPrintMsg(const char*);
 void debugPrintHex(const uint8_t); //charで受けるとFFが論理反転して表示バグる

@@ -1,9 +1,12 @@
 #include <Arduino.h>
 #include "./rcs660s/rcs660s_apdu.h"
+#include "./rcs660s/rcs660s_uart.h"
 #include <vector>
 
 #define TEST_INTERVAL_MS 1000
 #define TEST_LOOP_INTERVAL_MS 300000
+
+
 
 //マニュアル指定定数
 const uint8_t FULL_COMMAND_GetFirmWareVersion[] = {0x00, 0x00, 0xFF, 0x00, 0x0E, 0xF2, 0x6B, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x56, 0x00, 0x00, 0x3C, 0x00};
@@ -20,7 +23,12 @@ void loop() {
   // put your main code here, to run repeatedly:
 
   debugPrintMsg("◆◆◆ テストループ開始 ◆◆◆");
-
+  /*********************************************************************/
+  debugPrintMsg("◆ リセットデバイス ◆");
+  executeResetDeviceSequence();
+  uart_receiver_init();
+  receiveData(false); //ResetDeviceの完了通知は来ないのでACKタイムアウトで待機代用
+  /*********************************************************************/
   debugPrintMsg("◆ レシーバ初期化 ◆");
   uart_receiver_init();
   delay(TEST_INTERVAL_MS);
@@ -55,7 +63,8 @@ void loop() {
   /*********************************************************************/
   debugPrintMsg("◆ リセットデバイス ◆");
   executeResetDeviceSequence();
-  uart_sendAck();
+  uart_receiver_init();
+  receiveData(false); //ResetDeviceの完了通知は来ないのでACKタイムアウトで待機代用
   /*********************************************************************/
   debugPrintMsg("◆ レシーバ初期化 ◆");
   uart_receiver_init();
