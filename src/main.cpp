@@ -4,13 +4,14 @@
 #include <vector>
 
 #define TEST_INTERVAL_MS 1000
-#define TEST_LOOP_INTERVAL_MS 300000
+#define TEST_LOOP_INTERVAL_MS 30000
 
 typedef enum _test_rx_mode{
   TEST_RX_MODE_WO_TLV = 0,
   TEST_RX_MODE_W_TLV,
-  TEST_RX_MODE_W_TLV_AND_ATR,
-  TEST_RX_MODE_W_TLV_AND_ATR_W_CARD_RES,
+  TEST_RX_MODE_W_TLV_AND_ATR_TYPE_A,
+  TEST_RX_MODE_W_TLV_AND_ATR_TYPE_B,
+  TEST_RX_MODE_W_TLV_AND_CARD_RES,
 }TEST_RX_MODE;
 
 //マニュアル指定定数
@@ -90,7 +91,7 @@ void loop() {
   assemblyAPDUcommand_SwitchProtocol_TypeB_AutoActivate();
 
   debugPrintMsg("◆ 受信 ◆");
-  receiveData(TEST_RX_MODE_W_TLV_AND_ATR);
+  receiveData(TEST_RX_MODE_W_TLV_AND_ATR_TYPE_B);
   /*********************************************************************/
   debugPrintMsg("◆ レシーバ初期化 ◆");
   uart_receiver_init();
@@ -181,7 +182,7 @@ void receiveData(TEST_RX_MODE mode){
       debugPrintDec(ares);
 
       // 4. 3 がOKなら TLV セットを解析
-      if(mode == TEST_RX_MODE_W_TLV_AND_ATR_W_CARD_RES){
+      if(mode == TEST_RX_MODE_W_TLV_AND_CARD_RES){
         debugPrintMsg("getCardResponse_from_TransparentExchangeResponse実行");
         std::vector<uint8_t> cardRes = getCardResponse_from_TransparentExchangeResponse(apduDataObj);
         debugPrintMsg("getCardResponse_from_TransparentExchangeResponse結果 = ");
@@ -195,7 +196,7 @@ void receiveData(TEST_RX_MODE mode){
           }
           debugPrintMsg("CARD RES END");
         }
-      }else if(mode == TEST_RX_MODE_W_TLV_AND_ATR){
+      }else if(mode == TEST_RX_MODE_W_TLV_AND_ATR_TYPE_B){
         debugPrintMsg("getTypeB_ATR_from_SwitchProtocolResponse実行");
         NFC_TYPE_B_ATR atr = getTypeB_ATR_from_SwitchProtocolResponse(apduDataObj);
         debugPrintMsg("getTypeB_ATR_from_SwitchProtocolResponse結果 = ");
