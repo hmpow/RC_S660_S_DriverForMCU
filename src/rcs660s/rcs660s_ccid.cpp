@@ -145,11 +145,9 @@ std::vector<uint8_t> parseCCIDresponse_RDR_to_PC_Escape(const uint8_t* inputCCID
 
     debugPrintMsg("parseCCIDresponse_RDR_to_PC_Escape :: dwLength (HEX) = ");
     debugPrintHex(dwLength);
-    debugPrintMsg("\n");
 
     debugPrintMsg("parseCCIDresponse_RDR_to_PC_Escape :: abData.max_size() (HEX) = ");
     debugPrintHex(abData.max_size());
-    debugPrintMsg("\n");
 
     if(dwLength > abData.max_size()){
         debugPrintMsg("ERROR! parseCCIDresponse_RDR_to_PC_Escape :: dwLengthが長すぎます\n");

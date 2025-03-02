@@ -13,22 +13,22 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
 
-  debugPrintMsg("\nTransceiver Test\n");
+  debugPrintMsg("Transceiver Test\n");
   //レシーバ初期化
   uart_receiver_init();
 
   delay(2000);
 
   //rcs660 に GetFirmwareVersionを送信
-  debugPrintMsg("\n--TX GetFirmwareVersion--");
+  debugPrintMsg("--TX GetFirmwareVersion--");
   assemblyAPDUcommand_GetFirmwareVersion();
 
   //ACK確認
-  debugPrintMsg("\n--RX ACK--");
+  debugPrintMsg("--RX ACK--");
   (void)uart_receiver_checkACK();
 
   //データ受信
-  debugPrintMsg("\n--RX DATA--");
+  debugPrintMsg("--RX DATA--");
   uint8_t sprittedDataArr[RECEIVE_DATA_BUFF_SIZE];
   uint16_t sprittedDataLen = 0;
   bool isReceived = false;
@@ -36,33 +36,38 @@ void loop() {
   isReceived = uart_receiver_receiveData(sprittedDataArr, &sprittedDataLen); 
 
   if(isReceived){
-    debugPrintMsg("\nRX SUCCESS\nDATA = ");
+    debugPrintMsg("RX SUCCESS\nDATA = ");
     for (size_t i = 0; i < sprittedDataLen; i++)
     {
       debugPrintHex(sprittedDataArr[i]);
     }
     isReceived = false;
 
-    debugPrintMsg("\nTEST CCID to APDU\n");
+    debugPrintMsg("TEST CCID to APDU\n");
     
     std::vector<uint8_t> apduData = parseCCIDresponse_RDR_to_PC_Escape(sprittedDataArr, sprittedDataLen);
-    debugPrintMsg("\nAPDU DATA = ");
+    debugPrintMsg("APDU DATA = ");
     for (size_t i = 0; i < apduData.size(); i++)
     {
       debugPrintHex(apduData[i]);
     }
 
+    debugPrintMsg("\ncheckAPDU_response_ErrStatus実行");
+    APDU_RESPONSE_ERROR_STATUS errStatus = checkAPDU_response_ErrStatus(apduData);
+    debugPrintMsg("checkAPDU_response_ErrStatus結果_enum = ");
+    debugPrintDec(errStatus);
+ 
   }else{
     debugPrintMsg("RX NO DATA");
   }
-  debugPrintMsg("\n-----\n"); 
+  debugPrintMsg("-----\n"); 
 
  #if 0 
-  debugPrintMsg("\nTEST debugPrintCCIDresponse_bError\n"); 
-  debugPrintMsg("\n-----\n"); 
+  debugPrintMsg("TEST debugPrintCCIDresponse_bError\n"); 
+  debugPrintMsg("-----\n"); 
   debugPrintCCIDresponse_bError(0x81);
-  debugPrintMsg("\n-----\n"); 
-  debugPrintMsg("\nTEST parseCCIDresponse_RDR_to_PC_DataBlock\n"); 
+  debugPrintMsg("-----\n"); 
+  debugPrintMsg("TEST parseCCIDresponse_RDR_to_PC_DataBlock\n"); 
   const uint8_t testaaa[] = {0x80,0x01,0x00,0x00,0x00,0x00,0x06,0x00,0x00,0x00};
   parseCCIDresponse_RDR_to_PC_DataBlock(testaaa, 10);
   const uint8_t testaab[] = {0x81,0x01,0x00,0x00,0x00,0x00,0x06,0x00,0x00,0x00};

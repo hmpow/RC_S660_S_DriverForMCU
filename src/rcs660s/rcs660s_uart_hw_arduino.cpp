@@ -35,6 +35,7 @@ uint8_t uart_hw_read(){
 
 
 void debugPrintMsg(const char* str){
+    UART_PC.print("\n");
     UART_PC.println(str);
     return;
 }
