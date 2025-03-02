@@ -275,7 +275,7 @@ void executeResetDeviceSequence(void){
         }
 
         debugPrintMsg("ResetDevice SEND ACK!");
-        uart_sendAck_MeaninglessStringsToPreventLinkErrors();
+        uart_sendAck();
 
         //ACK送信後にリーダー側でリセット完了を待つ
         uart_wait_ms(WAIT_AFTER_RESET);
