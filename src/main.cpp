@@ -2,39 +2,136 @@
 #include "./rcs660s/rcs660s_apdu.h"
 #include <vector>
 
+#define TEST_INTERVAL_MS 1000
+#define TEST_LOOP_INTERVAL_MS 300000
+
 //マニュアル指定定数
 const uint8_t FULL_COMMAND_GetFirmWareVersion[] = {0x00, 0x00, 0xFF, 0x00, 0x0E, 0xF2, 0x6B, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x56, 0x00, 0x00, 0x3C, 0x00};
+
+void receiveData(bool);
 
 void setup() {
   // put your setup code here, to run once:
   setupSerial();
+  delay(10000);//PIO Upload → シリアルモニタ切替待機
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
 
-  debugPrintMsg("Transceiver Test\n");
-  //レシーバ初期化
-  uart_receiver_init();
+  debugPrintMsg("◆◆◆ テストループ開始 ◆◆◆");
 
-  delay(2000);
+  debugPrintMsg("◆ レシーバ初期化 ◆");
+  uart_receiver_init();
+  delay(TEST_INTERVAL_MS);
 
   //rcs660 に GetFirmwareVersionを送信
-  debugPrintMsg("--TX GetFirmwareVersion--");
+  debugPrintMsg("● GetFirmwareVersion");
   assemblyAPDUcommand_GetFirmwareVersion();
+  
+  debugPrintMsg("◆ 受信 ◆");
+  receiveData(false);
 
-  //ACK確認
-  debugPrintMsg("--RX ACK--");
-  (void)uart_receiver_checkACK();
+  /*********************************************************************/
+  debugPrintMsg("◆ レシーバ初期化 ◆");
+  uart_receiver_init();
+  delay(TEST_INTERVAL_MS);
 
-  //データ受信
-  debugPrintMsg("--RX DATA--");
+  debugPrintMsg("● assemblyAPDUcommand_ManageSession_StartTransparentSession OK期待");
+  assemblyAPDUcommand_ManageSession_StartTransparentSession();
+
+  debugPrintMsg("◆ 受信 ◆");
+  receiveData(true);
+  /*********************************************************************/
+  debugPrintMsg("◆ レシーバ初期化 ◆");
+  uart_receiver_init();
+  delay(TEST_INTERVAL_MS);
+
+  debugPrintMsg("● assemblyAPDUcommand_ManageSession_StartTransparentSession 2重呼び出しエラー期待");
+  assemblyAPDUcommand_ManageSession_StartTransparentSession();
+
+  debugPrintMsg("◆ 受信 ◆");
+  receiveData(true);
+  /*********************************************************************/
+  debugPrintMsg("◆ リセットデバイス ◆");
+  executeResetDeviceSequence();
+  uart_sendAck();
+  /*********************************************************************/
+  debugPrintMsg("◆ レシーバ初期化 ◆");
+  uart_receiver_init();
+  delay(TEST_INTERVAL_MS);
+
+  debugPrintMsg("● assemblyAPDUcommand_ManageSession_StartTransparentSession OK期待");
+  assemblyAPDUcommand_ManageSession_StartTransparentSession();
+
+  debugPrintMsg("◆ 受信 ◆");
+  receiveData(true);
+
+  debugPrintMsg("◆ レシーバ初期化 ◆");
+  uart_receiver_init();
+  delay(TEST_INTERVAL_MS);
+  /*********************************************************************/
+
+  debugPrintMsg("● assemblyAPDUcommand_SwitchProtocol_TypeB_AutoActivate");
+  assemblyAPDUcommand_SwitchProtocol_TypeB_AutoActivate();
+
+  debugPrintMsg("◆ 受信 ◆");
+  receiveData(true);
+  /*********************************************************************/
+  debugPrintMsg("◆ レシーバ初期化 ◆");
+  uart_receiver_init();
+  delay(TEST_INTERVAL_MS);
+
+  debugPrintMsg("RF OFF");
+  assemblyAPDUcommand_ManageSession_TrunOffRfField();
+
+  debugPrintMsg("◆ 受信 ◆");
+  receiveData(true);
+
+ #if 0 
+  debugPrintMsg("TEST debugPrintCCIDresponse_bError\n"); 
+  debugPrintMsg("-----\n"); 
+  debugPrintCCIDresponse_bError(0x81);
+  debugPrintMsg("-----\n"); 
+  debugPrintMsg("TEST parseCCIDresponse_RDR_to_PC_DataBlock\n"); 
+  const uint8_t testaaa[] = {0x80,0x01,0x00,0x00,0x00,0x00,0x06,0x00,0x00,0x00};
+  parseCCIDresponse_RDR_to_PC_DataBlock(testaaa, 10);
+  const uint8_t testaab[] = {0x81,0x01,0x00,0x00,0x00,0x00,0x06,0x00,0x00,0x00};
+  parseCCIDresponse_RDR_to_PC_DataBlock(testaab, 10);
+  const uint8_t testaac[] = {0x80,0x01};
+  parseCCIDresponse_RDR_to_PC_DataBlock(testaaa, 2);
+#endif
+debugPrintMsg("◆◆◆ テストループ終了 ◆◆◆");
+delay(TEST_LOOP_INTERVAL_MS);
+}
+
+
+
+
+void receiveData(bool isTLVparse){
+
+  debugPrintMsg("★★ 受信開始 ★★");
+
   uint8_t sprittedDataArr[RECEIVE_DATA_BUFF_SIZE];
   uint16_t sprittedDataLen = 0;
   bool isReceived = false;
+  bool isACKok = false;
+
+  //ACK確認
+  debugPrintMsg("★ ACK ★");
+  isACKok = uart_receiver_checkACK();
+  if(isACKok){
+    debugPrintMsg("ACK OK");
+  }else{
+    debugPrintMsg("ACK NG");
+    return;
+  }
+  
+  //データ受信
+  debugPrintMsg("★ データ ★");
 
   isReceived = uart_receiver_receiveData(sprittedDataArr, &sprittedDataLen); 
-
+  
   if(isReceived){
     debugPrintMsg("RX SUCCESS\nDATA = ");
     for (size_t i = 0; i < sprittedDataLen; i++)
@@ -56,23 +153,40 @@ void loop() {
     APDU_RESPONSE_ERROR_STATUS errStatus = checkAPDU_response_ErrStatus(apduData);
     debugPrintMsg("checkAPDU_response_ErrStatus結果_enum = ");
     debugPrintDec(errStatus);
- 
+
+    if(isTLVparse){
+      debugPrintMsg("★★★★★★★★★ TLV解析 ★★★★★★★★★");
+      // 2. 1 が OK なら TLVのバイト列取出し
+      debugPrintMsg("parseAPDU_response_DataObjects実行");
+      const std::vector <APDU_DATA_OBJECT> apduDataObj = parseAPDU_response_DataObjects(apduData);
+
+      // 3. 2 から TLV セットにエラーがないか確認
+      debugPrintMsg("checkAPDU_dataObject_ErrStatus実行");
+      const APDU_RESPONSE_ERROR_STATUS ares = checkAPDU_dataObject_ErrStatus(apduDataObj);
+      debugPrintMsg("checkAPDU_dataObject_ErrStatus結果_enum = ");
+      debugPrintDec(ares);
+
+      // 4. 3 がOKなら TLV セットを解析
+      debugPrintMsg("checkAPDU_dataObject_ErrStatus実行");
+      std::vector<uint8_t> cardRes = getCardResponse_from_TransparentExchangeResponse(apduDataObj);
+      debugPrintMsg("getCardResponse_from_TransparentExchangeResponse結果 = ");
+      if(cardRes.size() == 0){
+        debugPrintMsg("NO DATA");
+      }else{
+        debugPrintMsg("CARD RES START");
+        for (size_t i = 0; i < cardRes.size(); i++)
+        {
+          debugPrintHex(cardRes[i]);
+        }
+        debugPrintMsg("CARD RES END");
+      }
+    }
+
+
   }else{
     debugPrintMsg("RX NO DATA");
   }
-  debugPrintMsg("-----\n"); 
 
- #if 0 
-  debugPrintMsg("TEST debugPrintCCIDresponse_bError\n"); 
-  debugPrintMsg("-----\n"); 
-  debugPrintCCIDresponse_bError(0x81);
-  debugPrintMsg("-----\n"); 
-  debugPrintMsg("TEST parseCCIDresponse_RDR_to_PC_DataBlock\n"); 
-  const uint8_t testaaa[] = {0x80,0x01,0x00,0x00,0x00,0x00,0x06,0x00,0x00,0x00};
-  parseCCIDresponse_RDR_to_PC_DataBlock(testaaa, 10);
-  const uint8_t testaab[] = {0x81,0x01,0x00,0x00,0x00,0x00,0x06,0x00,0x00,0x00};
-  parseCCIDresponse_RDR_to_PC_DataBlock(testaab, 10);
-  const uint8_t testaac[] = {0x80,0x01};
-  parseCCIDresponse_RDR_to_PC_DataBlock(testaaa, 2);
-#endif
+  debugPrintMsg("★★ 受信完了 ★★");
+  return;
 }

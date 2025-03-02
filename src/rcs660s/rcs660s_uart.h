@@ -37,6 +37,10 @@
 /*******************/
 
 void assemblyRcs660sUartCommandFrame(const uint8_t* , const uint16_t);
+void uart_sendAck(void);
+// detail ResetDevice と Power Down で ACK 送信が必要
+// APDUコマンドの制約だがACKは2章(UART)で定義されているためuart層に関数を設ける 
+
 void uart_receiver_init(void);
 bool uart_receiver_checkACK(void);
 bool uart_receiver_receiveData(uint8_t[], uint16_t*);

@@ -1,4 +1,5 @@
 #include "rcs660s_apdu.h"
+#include "rcs660s_uart.h"
 
 //NFC Typeの指定
 
@@ -252,6 +253,29 @@ void assemblyAPDUcommand_ResetDevice(void){
 
     passToCcidLayer(resetDevice_apdu_command);
 
+    return;
+}
+
+void executeResetDeviceSequence(void){
+    uart_receiver_init();
+    assemblyAPDUcommand_ResetDevice();
+    if(uart_receiver_checkACK()){
+        debugPrintMsg("ResetDevice ACK OK");
+        uint8_t sprittedDataArr[RECEIVE_DATA_BUFF_SIZE];
+        uint16_t sprittedDataLen = 0;
+        bool isReceived = false;
+        isReceived = uart_receiver_receiveData(sprittedDataArr, &sprittedDataLen); 
+  
+        if(isReceived){
+          debugPrintMsg("ResetDevice RX SUCCESS\nDATA = ");
+          for (size_t i = 0; i < sprittedDataLen; i++)
+          {
+            debugPrintHex(sprittedDataArr[i]);
+          }
+        }
+        debugPrintMsg("ResetDevice SEND ACK!");
+        //uart_sendAck();
+    }
     return;
 }
 
@@ -608,7 +632,7 @@ std::vector <APDU_DATA_OBJECT> parseAPDU_response_DataObjects(const std::vector<
 
 //TLVセットを全部プリント
 void debugPrintAPDU_response_DataObjects(const std::vector <APDU_DATA_OBJECT> dataObjects){
-    debugPrintMsg("\n\n---------- debugPrintAPDU_response_DataObjects ----------\n\n");
+    debugPrintMsg("---------- debugPrintAPDU_response_DataObjects ----------");
     for(uint8_t i = 0; i < dataObjects.size(); i++){
         debugPrintMsg("TLV set");
         debugPrintDec(i);
@@ -622,15 +646,12 @@ void debugPrintAPDU_singleDataOobjectTLV(const APDU_DATA_OBJECT dataObject){
     debugPrintMsg("----------");
     debugPrintMsg("Tag_hex = ");
     debugPrintHex(dataObject.Tag);
-    debugPrintMsg("\n");
     debugPrintMsg("Length_dec = ");
     debugPrintHex(dataObject.Length);
-    debugPrintMsg("\n");
     debugPrintMsg("Value_hex = ");
     for(uint8_t j = 0; j < dataObject.Length; j++){
         debugPrintHex(dataObject.Value[j]);
     }
-    debugPrintMsg("\n");
     debugPrintMsg("----------");
 }
 

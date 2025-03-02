@@ -1,7 +1,5 @@
 #include "rcs660s_uart.h"
 
-
-
 /*****************/
 /* グローバル変数 */
 /*****************/
@@ -99,6 +97,13 @@ void assemblyRcs660sUartCommandFrame(const uint8_t wired_packet_data[], const ui
     free(arrCommadFrame);
 }
 
+/**
+ * @brief ACKを送信
+ */
+void uart_sendACK(void){
+  assemblyRcs660sUartCommandFrame(FULL_COMMAND_ACK, sizeof(FULL_COMMAND_ACK)/sizeof(FULL_COMMAND_ACK[0]));
+  return;
+}
 
 /**
  * @brief 受信処理初期化

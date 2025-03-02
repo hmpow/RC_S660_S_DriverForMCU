@@ -8,6 +8,7 @@
 
 #include "rcs660s_util.h"
 #include "rcs660s_ccid.h"
+#include "rcs660s_uart.h"
 
 /*****************/
 /* 型や定数の宣言 */
@@ -171,7 +172,9 @@ void assemblyAPDUcommand_SwitchProtocol_TypeB_AutoActivate(void);
 
 //4.11章 Reset Device
 //このファイルはAPDU階層の話なのでResetDeviceのACK送信はアプリ層側で処理する
+//と思っていたがAPDUコマンドの仕様なのでAPDU層にexecuteを実装する
 void assemblyAPDUcommand_ResetDevice(void);
+void executeResetDeviceSequence(void);
 
 //4.12章 Get Firmware Version
 void assemblyAPDUcommand_GetFirmwareVersion(void);
@@ -208,7 +211,7 @@ void debugPrintAPDU_response_DataObjects(const std::vector <APDU_DATA_OBJECT>);
 void debugPrintAPDU_singleDataOobjectTLV(const APDU_DATA_OBJECT);
 
 // 3. 2 から TLV セットにエラーがないか確認
-APDU_RESPONSE_ERROR_STATUS checkAPDU_dataObject_ErrStatus(const std::vector<uint8_t>);
+APDU_RESPONSE_ERROR_STATUS checkAPDU_dataObject_ErrStatus(const std::vector <APDU_DATA_OBJECT>);
 
 // 4. 3 がOKなら TLV セットを解析
 std::vector<uint8_t> getCardResponse_from_TransparentExchangeResponse(const std::vector <APDU_DATA_OBJECT>);
