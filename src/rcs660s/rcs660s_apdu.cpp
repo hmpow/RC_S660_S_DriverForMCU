@@ -276,7 +276,7 @@ void executeResetDeviceSequence(void){
 
         debugPrintMsg("ResetDevice SEND ACK!");
         uart_sendAck_MeaninglessStringsToPreventLinkErrors();
-        
+
         //ACK送信後にリーダー側でリセット完了を待つ
         uart_wait_ms(WAIT_AFTER_RESET);
     }
@@ -584,6 +584,8 @@ std::vector <APDU_DATA_OBJECT> parseAPDU_response_DataObjects(const std::vector<
         //タグを取出し
         if (inputAbData[currentPos] == TWO_BYTE_TAG_FLAG_1 || inputAbData[currentPos] == TWO_BYTE_TAG_FLAG_2) {
             debugPrintMsg("parseAPDU_response_DataObjects:2バイトタグ");
+            debugPrintHex(inputAbData[currentPos]);
+            debugPrintHex(inputAbData[currentPos + 1]);
             dataObj.Tag = (uint16_t)(inputAbData[currentPos] << 8);
             currentPos++;
             if(currentPos > dataLen){
@@ -594,6 +596,7 @@ std::vector <APDU_DATA_OBJECT> parseAPDU_response_DataObjects(const std::vector<
             dataObj.Tag |= (uint16_t)inputAbData[currentPos];
         } else {
             debugPrintMsg("parseAPDU_response_DataObjects:1バイトタグ");
+            debugPrintHex(inputAbData[currentPos]);
             dataObj.Tag = (uint16_t)inputAbData[currentPos];
         }
 
