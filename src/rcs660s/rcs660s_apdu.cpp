@@ -151,7 +151,8 @@ void assemblyAPDUcommand_ManageSession_TrunOnRfField(void){
 
 //4.9章 Transparent Exchange
 
-//Transmission and Reception Flagコマンド組み立て(TxCRC付加,RxCRC除去,送受信パリティ,ProtocolProloge自動処理)
+//Transmission and Reception Flagコマンド組み立て(true=TxCRC付加しない,true=RxCRC除去しない,送受信パリティ,true=ProtocolProloge自動処理しない)
+//Type-Bと通信できるのは (false, false, 3, false)
 void assemblyAPDUcommand_TransparentExchange_TransmissionAndReceptionFlag(
     const bool txDoNotAppendCRC, const bool rcDoNotDiscardCRC, const uint8_t transceiveParity, const bool doNotAppendOrDiscardProcolProloge){
 
@@ -179,7 +180,7 @@ void assemblyAPDUcommand_TransparentExchange_TransmissionAndReceptionFlag(
 
 
 //Transceveコマンド組み立て(無線コマンドarray,無線コマンドlen,受信タイムアウトms)
-void assemblyAPDUcommand_Transparent_Exchange_Transceive(const uint8_t WirelessCommand[], const uint8_t WirelessCommand_Len, const uint16_t timeout_ms){
+void assemblyAPDUcommand_TransparentExchange_Transceive(const uint8_t WirelessCommand[], const uint8_t WirelessCommand_Len, const uint16_t timeout_ms){
 
     APDU_DATA_OBJECT transmit_data_object = {0};
 

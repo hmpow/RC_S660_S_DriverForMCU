@@ -33,7 +33,7 @@ void loop() {
 
   debugPrintMsg("◆◆◆ テストループ開始 ◆◆◆");
   /*********************************************************************/
-  debugPrintMsg("◆ リセットデバイス ◆");
+  debugPrintMsg("【コマンド実行】リセットデバイス");
   executeResetDeviceSequence();
   uart_receiver_init();
   (void)receiveData(TEST_RX_MODE_WO_TLV); //ResetDeviceの完了通知は来ないのでACKタイムアウトで待機代用
@@ -43,10 +43,10 @@ void loop() {
   delay(TEST_INTERVAL_MS);
 
   //rcs660 に GetFirmwareVersionを送信
-  debugPrintMsg("● GetFirmwareVersion");
+  debugPrintMsg("【コマンド実行】GetFirmwareVersion");
   assemblyAPDUcommand_GetFirmwareVersion();
   
-  debugPrintMsg("◆ 受信 ◆");
+  
   (void)receiveData(TEST_RX_MODE_WO_TLV);
 
   /*********************************************************************/
@@ -54,23 +54,23 @@ void loop() {
   uart_receiver_init();
   delay(TEST_INTERVAL_MS);
 
-  debugPrintMsg("● assemblyAPDUcommand_ManageSession_StartTransparentSession OK期待");
+  debugPrintMsg("【コマンド実行】ManageSession_StartTransparentSession OK期待");
   assemblyAPDUcommand_ManageSession_StartTransparentSession();
 
-  debugPrintMsg("◆ 受信 ◆");
+  
   (void)receiveData(TEST_RX_MODE_W_TLV);
   /*********************************************************************/
   debugPrintMsg("◆ レシーバ初期化 ◆");
   uart_receiver_init();
   delay(TEST_INTERVAL_MS);
 
-  debugPrintMsg("● assemblyAPDUcommand_ManageSession_StartTransparentSession 2重呼び出しエラー期待");
+  debugPrintMsg("【コマンド実行】ManageSession_StartTransparentSession 2重呼び出しエラー期待");
   assemblyAPDUcommand_ManageSession_StartTransparentSession();
 
-  debugPrintMsg("◆ 受信 ◆");
+  
   (void)receiveData(TEST_RX_MODE_W_TLV);
   /*********************************************************************/
-  debugPrintMsg("◆ リセットデバイス ◆");
+  debugPrintMsg("【コマンド実行】リセットデバイス ◆");
   executeResetDeviceSequence();
   uart_receiver_init();
   (void)receiveData(TEST_RX_MODE_WO_TLV); //ResetDeviceの完了通知は来ないのでACKタイムアウトで待機代用
@@ -79,25 +79,25 @@ void loop() {
   uart_receiver_init();
   delay(TEST_INTERVAL_MS);
 
-  debugPrintMsg("● assemblyAPDUcommand_ManageSession_StartTransparentSession OK期待");
+  debugPrintMsg("【コマンド実行】ManageSession_StartTransparentSession OK期待");
   assemblyAPDUcommand_ManageSession_StartTransparentSession();
 
-  debugPrintMsg("◆ 受信 ◆");
+  
   (void)receiveData(TEST_RX_MODE_W_TLV);
-
+  /*********************************************************************/
   debugPrintMsg("◆ レシーバ初期化 ◆");
   uart_receiver_init();
   delay(TEST_INTERVAL_MS);
-  /*********************************************************************/
+
   do{
     debugPrintMsg("★★★★★★★★★★★★★★★★★★★★★★★★★★★");
     debugPrintMsg("★★★★★NFC-TypeBカードをタッチしてください★★★★");
     debugPrintMsg("★★★★★★★★★★★★★★★★★★★★★★★★★★★");
     delay(TEST_TOUCH_WAIT_INTERVAL_MS);
 
-    debugPrintMsg("● assemblyAPDUcommand_SwitchProtocol_TypeB_AutoActivate");
+    debugPrintMsg("【コマンド実行】SwitchProtocol_TypeB_AutoActivate(レイヤー4)");
     assemblyAPDUcommand_SwitchProtocol_TypeB_AutoActivate();
-    debugPrintMsg("◆ 受信 ◆");
+    
   }while(receiveData(TEST_RX_MODE_W_TLV_AND_ATR_TYPE_B));
 
   /*********************************************************************/
@@ -105,10 +105,116 @@ void loop() {
   uart_receiver_init();
   delay(TEST_INTERVAL_MS);
 
-  debugPrintMsg("RF OFF");
+  debugPrintMsg("【コマンド実行】TransparentExchange_TransmissionAndReceptionFlag");
+  debugPrintMsg("txDoNotAppendCRC = false, rcDoNotDiscardCRC = false, transceiveParity = 3, doNotAppendOrDiscardProcolProloge = false\n");
+  assemblyAPDUcommand_TransparentExchange_TransmissionAndReceptionFlag(false, false, 3, false);
+  
+  (void)receiveData(TEST_RX_MODE_W_TLV);
+  
+  /*********************************************************************/
+  debugPrintMsg("◆ レシーバ初期化 ◆");
+  uart_receiver_init();
+  delay(TEST_INTERVAL_MS);
+
+  debugPrintMsg("【コマンド実行】ManageSession_TrunOnRfField");
+  assemblyAPDUcommand_ManageSession_TrunOnRfField();
+
+  
+  (void)receiveData(TEST_RX_MODE_W_TLV);
+
+  /*********************************************************************/
+  /*********************************************************************/
+  /*********************************************************************/
+  debugPrintMsg("★★★★★★★★★★★★★★★★★★★★★★★★★★★");
+  debugPrintMsg("★★★★★★★★★ カードと通信開始 ★★★★★★★★★");
+  debugPrintMsg("★★★★★★★★★★★★★★★★★★★★★★★★★★★");
+  /*********************************************************************/
+  debugPrintMsg("◆ レシーバ初期化 ◆");
+  uart_receiver_init();
+  delay(TEST_INTERVAL_MS);
+
+  debugPrintMsg("【コマンド実行】assemblyAPDUcommand_Transparent_Exchange_Transceive\n");
+  uint8_t data[] = { 0x00,0xA4,0x00,0x00 };
+  debugPrintMsg("****** SELECT MF CASE 1 *****\n");
+  debugPrintMsg("WirelessCommand = {00 A4 00 00}, WirelessCommand_Len = 4,  timeout_ms = 0\n");
+  //Transceive_Func(data, (uint8_t)4, (uint16_t)0);
+
+/****************************/
+/****************************/
+/****************************/
+// 中身を出す
+
+APDU_DATA_OBJECT transmit_data_object = {0};
+
+//固定値(マニュアル指定値)
+transmit_data_object.Tag = (uint8_t)0x95; //Transceive
+
+//変数
+transmit_data_object.Length = 4;
+
+for(uint8_t i = 0; i < transmit_data_object.Length; i++){
+    transmit_data_object.Value[i] = data[i];
+}
+
+//Base関数へパス
+_assemblyAPDUcommand_TransparentExchange_Base(transmit_data_object, 0);
+
+/****************************/
+/****************************/
+/****************************/
+
+
+
+  (void)receiveData(TEST_RX_MODE_W_TLV_AND_CARD_RES);
+  /********************************************************/
+  debugPrintMsg("◆ レシーバ初期化 ◆");
+  uart_receiver_init();
+  delay(TEST_INTERVAL_MS);
+
+  debugPrintMsg("WirelessCommand = {00 A4 00 00}, WirelessCommand_Len = 4,  timeout_ms = 60\n");
+  //assemblyAPDUcommand_TransparentExchange_Transceive(data, 4, 60);
+
+  (void)receiveData(TEST_RX_MODE_W_TLV_AND_CARD_RES);
+  /********************************************************/
+  debugPrintMsg("◆ レシーバ初期化 ◆");
+  uart_receiver_init();
+  delay(TEST_INTERVAL_MS);
+
+  debugPrintMsg("\n****** SELECT MF CASE 3 , P1 = 00 , P2 = 00  *****\n\n");
+  const uint8_t data_2[] = {0x00,0xA4,0x00,0x00,0x02,0x3F,0x00};
+  debugPrintMsg("WirelessCommand = {00,A4,00,00,02,3F,00}, WirelessCommand_Len = 7,  timeout_ms = 0\n");
+  //assemblyAPDUcommand_TransparentExchange_Transceive(data_2, 7, 0);
+
+  (void)receiveData(TEST_RX_MODE_W_TLV_AND_CARD_RES);
+  /********************************************************/
+
+  /*********************************************************************/
+  debugPrintMsg("★★★★★★★★★★★★★★★★★★★★★★★★★★★");
+  debugPrintMsg("★★★★★★★★★ カードと通信終了 ★★★★★★★★★");
+  debugPrintMsg("★★★★★★★★★★★★★★★★★★★★★★★★★★★");
+
+  /*********************************************************************/
+  /*********************************************************************/
+  /*********************************************************************/
+
+  debugPrintMsg("◆ レシーバ初期化 ◆");
+  uart_receiver_init();
+  delay(TEST_INTERVAL_MS);
+
+  debugPrintMsg("【コマンド実行】ManageSession_TrunOffRfField");
   assemblyAPDUcommand_ManageSession_TrunOffRfField();
 
-  debugPrintMsg("◆ 受信 ◆");
+  
+  (void)receiveData(TEST_RX_MODE_W_TLV);
+  /*********************************************************************/
+  debugPrintMsg("◆ レシーバ初期化 ◆");
+  uart_receiver_init();
+  delay(TEST_INTERVAL_MS);
+
+  debugPrintMsg("【コマンド実行】EndTransparentSession");
+  assemblyAPDUcommand_ManageSession_EndTransparentSession();
+
+  
   (void)receiveData(TEST_RX_MODE_W_TLV);
 
  #if 0 
