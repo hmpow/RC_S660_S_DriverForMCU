@@ -1,5 +1,37 @@
 #include "rcs660s_apdu.h"
+#include "rcs660s_uart.h"
 
+//NFC Typeの指定
+
+static NFC_TYPE g_nfc_type = NFC_TYPE_UNSET; //指定タイプに応じてAPDU層で閉じて動くようにする
+
+void initNfcType(void){
+    g_nfc_type = NFC_TYPE_UNSET;
+    return;
+}
+void setNfcTypeA(void){
+    g_nfc_type = NFC_TYPE_A;
+    return;
+}
+void setNfcTypeB(void){
+    g_nfc_type = NFC_TYPE_B;
+    return;
+}
+void setNfcTypeV(void){
+    g_nfc_type = NFC_TYPE_V;
+    return;
+}
+void setNfcTypeFeliCa(void){
+    g_nfc_type = NFC_TYPE_FELICA;
+    return;
+}
+NFC_TYPE getNfcType(void){
+    return g_nfc_type;
+}
+
+/************************************************************************************/
+/*************************************** 送信 ***************************************/
+/************************************************************************************/
 
 //apduコマンドを配列にしてCCID層にパスする
 uint8_t passToCcidLayer(APDU_COMMAND input_apdu_command){
@@ -29,7 +61,7 @@ uint8_t passToCcidLayer(APDU_COMMAND input_apdu_command){
     arrAPDUcommand = (uint8_t*)malloc(sizeof(uint8_t) * arrSize);
     
     if(arrAPDUcommand == NULL){
-        debugPrintMsg("\nmalloc ERROR!\n");
+        debugPrintMsg("\nmalloc ERROR!");
         exit(1);
     }
 
@@ -54,11 +86,11 @@ uint8_t passToCcidLayer(APDU_COMMAND input_apdu_command){
         arrAPDUcommand[5 + input_apdu_command.Lc] = input_apdu_command.Le;
     }
 
-    debugPrintMsg("\nSTART passToCcidLayer Test Output\n");
+    debugPrintMsg("\nSTART passToCcidLayer Test Output");
     for(int i = 0; i < arrSize; i++){
         debugPrintHex(arrAPDUcommand[i]);
     }
-    debugPrintMsg("\nEND passToCcidLayer Test Output\n");
+    debugPrintMsg("\nEND passToCcidLayer Test Output");
 
     assemblyCCIDcommand_PC_to_RDR_Escape(arrAPDUcommand, arrSize, SeqNo);
 
@@ -212,7 +244,7 @@ void assemblyAPDUcommand_ResetDevice(void){
 
     //固定値(マニュアル指定値)
     resetDevice_apdu_command.CLA = 0xFF;
-    resetDevice_apdu_command.INS = 0xC2;
+    resetDevice_apdu_command.INS = 0x55;
     resetDevice_apdu_command.P1  = 0x00;
     resetDevice_apdu_command.P2  = 0x00;
     resetDevice_apdu_command.Lc  = LC_NO_DATA;     //Lcなし
@@ -221,6 +253,33 @@ void assemblyAPDUcommand_ResetDevice(void){
 
     passToCcidLayer(resetDevice_apdu_command);
 
+    return;
+}
+
+void executeResetDeviceSequence(void){
+    uart_receiver_init();
+    assemblyAPDUcommand_ResetDevice();
+    if(uart_receiver_checkACK()){
+        debugPrintMsg("ResetDevice ACK OK");
+        uint8_t sprittedDataArr[RECEIVE_DATA_BUFF_SIZE];
+        uint16_t sprittedDataLen = 0;
+        bool isReceived = false;
+        isReceived = uart_receiver_receiveData(sprittedDataArr, &sprittedDataLen); 
+  
+        if(isReceived){
+          debugPrintMsg("ResetDevice RX SUCCESS\nDATA = ");
+          for (size_t i = 0; i < sprittedDataLen; i++)
+          {
+            debugPrintHex(sprittedDataArr[i]);
+          }
+        }
+
+        debugPrintMsg("ResetDevice SEND ACK!");
+        uart_sendAck_MeaninglessStringsToPreventLinkErrors();
+
+        //ACK送信後にリーダー側でリセット完了を待つ
+        uart_wait_ms(WAIT_AFTER_RESET);
+    }
     return;
 }
 
@@ -383,9 +442,329 @@ void _assemblyAPDUcommand_SwitchProtocol_Base(const APDU_DATA_OBJECT input_data_
     return;
 }
 
-/**********/
-/* 道具箱 */
-/**********/
+/************************************************************************************/
+/*************************************** 受信 ***************************************/
+/************************************************************************************/
+
+APDU_RESPONSE_ERROR_STATUS checkAPDU_response_ErrStatus(const std::vector<uint8_t> inputAbData){
+    
+    //尻ふたつがSW1,SW2
+    APDU_ERROR_STATUS response_sw1sw2 = {0};
+    response_sw1sw2.sw1 = inputAbData[inputAbData.size() - APDU_ERROR_STATUS_LENGTH];
+    response_sw1sw2.sw2 = inputAbData[(inputAbData.size() - APDU_ERROR_STATUS_LENGTH) + 1];
+    
+    return checkAPDU_sw1sw2_ErrStatus(response_sw1sw2);
+};
+
+APDU_RESPONSE_ERROR_STATUS checkAPDU_sw1sw2_ErrStatus(const APDU_ERROR_STATUS inputSw1Sw2){
+    //4.4章 APDUエラーステータス
+
+    debugPrintMsg("checkAPDU_sw1sw2_ErrStatus:APDU SW1 = ");
+    debugPrintHex(inputSw1Sw2.sw1);
+    debugPrintMsg("checkAPDU_sw1sw2_ErrStatus:APDU SW2 = ");
+    debugPrintHex(inputSw1Sw2.sw2);
+    debugPrintMsg("checkAPDU_sw1sw2_ErrStatus:CheckStatus"); 
+
+    if(inputSw1Sw2.sw1 == 0x90 && inputSw1Sw2.sw2 == 0x00){
+        debugPrintMsg("共通・TLV::正常終了");
+        return STATUS_OK;
+    }
+
+    if(inputSw1Sw2.sw1 == 0x62 && inputSw1Sw2.sw2 == 0x82){
+        debugPrintMsg("共通・TLV::Leで指定した値より、レスポンス長の方が短い");
+        return STATUS_ERROR;
+    }
+
+    if(inputSw1Sw2.sw1 == 0x63 && inputSw1Sw2.sw2 == 0x00){
+        debugPrintMsg("TLV::カードまたは NFC Port-400との通信異常");
+        return STATUS_ERROR;
+    }
+
+    if(inputSw1Sw2.sw1 == 0x63 && inputSw1Sw2.sw2 == 0x01){
+        debugPrintMsg("TLV::指定されたData Object間の実行順不正");
+        return STATUS_ERROR;
+    }
+
+    if(inputSw1Sw2.sw1 == 0x64 && inputSw1Sw2.sw2 == 0x01){
+        debugPrintMsg("TLV::カードからの応答がない");
+        return STATUS_ERROR;
+    }
+
+    if(inputSw1Sw2.sw1 == 0x67 && inputSw1Sw2.sw2 == 0x00){
+        debugPrintMsg("共通::Lc不正 / TLV::Data Objectの長さ不正");
+        return STATUS_ERROR;
+    }
+
+    if(inputSw1Sw2.sw1 == 0x68 && inputSw1Sw2.sw2 == 0x00){
+        debugPrintMsg("共通::CLA不正");
+        return STATUS_ERROR;
+    }
+
+    if(inputSw1Sw2.sw1 == 0x69 && inputSw1Sw2.sw2 == 0x81){
+        debugPrintMsg("共通::Data In が不正");
+        return STATUS_ERROR;
+    }
+    if(inputSw1Sw2.sw1 == 0x69 && inputSw1Sw2.sw2 == 0x83){
+        debugPrintMsg("GeneralAuthrenticate::認証失敗");
+        return STATUS_ERROR;
+    }
+    if(inputSw1Sw2.sw1 == 0x69 && inputSw1Sw2.sw2 == 0x85){
+        debugPrintMsg("共通::状態不正");
+        return STATUS_ERROR;
+    }
+    if(inputSw1Sw2.sw1 == 0x69 && inputSw1Sw2.sw2 == 0x86){
+        debugPrintMsg("GeneralAuthrenticate::KeyType不正");
+        return STATUS_ERROR;
+    }
+    if(inputSw1Sw2.sw1 == 0x69 && inputSw1Sw2.sw2 == 0x88){
+        debugPrintMsg("GeneralAuthrenticate or LoadKey::KeyNumber不正");
+        return STATUS_ERROR;
+    }
+    if(inputSw1Sw2.sw1 == 0x69 && inputSw1Sw2.sw2 == 0x89){
+        debugPrintMsg("LoadKey::KeyLength不正");
+        return STATUS_ERROR;
+    }
+    if(inputSw1Sw2.sw1 == 0x69 && inputSw1Sw2.sw2 == 0x8A){
+        debugPrintMsg("TLV::Start Transparent Session 2重呼び出し");
+        return STATUS_ERROR;
+    }
+
+    if(inputSw1Sw2.sw1 == 0x6A && inputSw1Sw2.sw2 == 0x80){
+        debugPrintMsg("TLV::Data Objectの中のTagのTLV形式不正");
+        return STATUS_ERROR;
+    }
+    if(inputSw1Sw2.sw1 == 0x6A && inputSw1Sw2.sw2 == 0x81){
+        debugPrintMsg("共通::INS不正 / TLV::DataObjectの中で未定義のTag使用");
+        return STATUS_ERROR;
+    }
+    if(inputSw1Sw2.sw1 == 0x6B && inputSw1Sw2.sw2 == 0x00){
+        debugPrintMsg("共通::P1,P2不正");
+        return STATUS_ERROR;
+    }
+    if(inputSw1Sw2.sw1 == 0x6C){
+        debugPrintMsg("共通::Le不正 : 実際のレスポンスデータ長 = ");
+        debugPrintHex(inputSw1Sw2.sw2);
+        debugPrintMsg("");
+        return STATUS_ERROR;
+    }
+    if(inputSw1Sw2.sw1 == 0x6F && inputSw1Sw2.sw2 == 0x00){
+        debugPrintMsg("共通・TLV::予期せぬエラー");
+        return STATUS_ERROR;
+    }
+
+    debugPrintMsg("共通・TLV::未定義のエラー");
+    return STATUS_ERROR;
+}
+
+std::vector <APDU_DATA_OBJECT> parseAPDU_response_DataObjects(const std::vector<uint8_t> inputAbData){
+    
+    //READ BINARY へ流用する際、長さ指定読み出しの場合は途中で切れていることあるため1バイト進むごとに領域内チェックが必要
+
+    APDU_DATA_OBJECT               dataObj = {0}; 
+    std::vector <APDU_DATA_OBJECT> output_TLV_data_objects; //空で初期化される
+
+    //エラーチェック
+    APDU_RESPONSE_ERROR_STATUS errStatus;
+    errStatus = checkAPDU_response_ErrStatus(inputAbData);
+    if(errStatus != STATUS_OK){
+        return output_TLV_data_objects; //空のvector返却
+    }   
+
+    //TLVのバイト列を取り出す
+    uint32_t currentPos = 0; //CCIDのdwLengthが4バイトのためuint32_t
+    const uint32_t dataLen = inputAbData.size();
+
+    while(currentPos < dataLen - APDU_ERROR_STATUS_LENGTH){
+
+        dataObj.Tag = 0x0000;
+        dataObj.Length = 0x00;
+        //
+        memset(dataObj.Value, 0, sizeof(dataObj.Value));
+
+        //タグを取出し
+        if (inputAbData[currentPos] == TWO_BYTE_TAG_FLAG_1 || inputAbData[currentPos] == TWO_BYTE_TAG_FLAG_2) {
+            debugPrintMsg("parseAPDU_response_DataObjects:2バイトタグ");
+            debugPrintHex(inputAbData[currentPos]);
+            debugPrintHex(inputAbData[currentPos + 1]);
+            dataObj.Tag = (uint16_t)(inputAbData[currentPos] << 8);
+            currentPos++;
+            if(currentPos > dataLen){
+                //Lenエラー時領域外アクセス防止
+                debugPrintMsg("parseAPDU_response_DataObjects:Error Lenがおかしい");
+                break;
+            }
+            dataObj.Tag |= (uint16_t)inputAbData[currentPos];
+        } else {
+            debugPrintMsg("parseAPDU_response_DataObjects:1バイトタグ");
+            debugPrintHex(inputAbData[currentPos]);
+            dataObj.Tag = (uint16_t)inputAbData[currentPos];
+        }
+
+        //Lenを取出し
+        currentPos++; //カレントバイトをLenに
+        if(currentPos > dataLen){
+            //Lenエラー時領域外アクセス防止
+            debugPrintMsg("parseAPDU_response_DataObjects:Error Lenがおかしい");
+            break;
+        }
+        dataObj.Length = inputAbData[currentPos];
+
+        //データの取得
+        if(DATA_OBJECT_VALUE_MAX_SIZE < dataObj.Length){
+            debugPrintMsg("parseAPDU_response_DataObjects:Error データ長が長すぎる");
+            break;
+        }
+
+        currentPos++; //カレントバイトをValueの頭に
+        for(uint8_t i = 0; i < dataObj.Length; i++){
+            
+            if(currentPos > dataLen){
+                //Lenエラー時領域外アクセス防止
+                debugPrintMsg("parseAPDU_response_DataObjects:Error Lenがおかしい");
+                break;
+            }
+
+            dataObj.Value[i] = inputAbData[currentPos];
+            currentPos++;
+        }
+
+        //取得したTLVをvectorに格納
+        output_TLV_data_objects.push_back(dataObj);
+
+        //最後まで行けばwhileで抜けるので終了判定はwhileに任せる
+    }
+
+    return output_TLV_data_objects;
+}
+
+//TLVセットを全部プリント
+void debugPrintAPDU_response_DataObjects(const std::vector <APDU_DATA_OBJECT> dataObjects){
+    debugPrintMsg("---------- debugPrintAPDU_response_DataObjects ----------");
+    for(uint8_t i = 0; i < dataObjects.size(); i++){
+        debugPrintMsg("TLV set");
+        debugPrintDec(i);
+        debugPrintAPDU_singleDataOobjectTLV(dataObjects[i]);
+    }
+    return;
+}
+
+//1つのTLVセットをプリント
+void debugPrintAPDU_singleDataOobjectTLV(const APDU_DATA_OBJECT dataObject){
+    debugPrintMsg("----------");
+    debugPrintMsg("Tag_hex = ");
+    debugPrintHex(dataObject.Tag);
+    debugPrintMsg("Length_dec = ");
+    debugPrintHex(dataObject.Length);
+    debugPrintMsg("Value_hex = ");
+    for(uint8_t j = 0; j < dataObject.Length; j++){
+        debugPrintHex(dataObject.Value[j]);
+    }
+    debugPrintMsg("----------");
+}
+
+// 3. 2 から TLV セットにエラーがないか確認 4.4章
+APDU_RESPONSE_ERROR_STATUS checkAPDU_dataObject_ErrStatus(const std::vector <APDU_DATA_OBJECT> dataObjects){
+
+    APDU_ERROR_STATUS response_sw1sw2 = {0};
+
+    for(uint8_t i = 0; i < dataObjects.size(); i++){
+        if(dataObjects[i].Tag == 0x00C0){
+            debugPrintMsg("checkAPDU_dataObject_ErrStatus : input ErrStatus TLV");
+            debugPrintAPDU_singleDataOobjectTLV(dataObjects[i]);
+            if(dataObjects[i].Length != 0x03){
+                debugPrintMsg("checkAPDU_dataObject_ErrStatus : Lengthが不正");
+                return STATUS_ERROR;
+            }
+
+            debugPrintMsg("checkAPDU_dataObject_ErrStatus :");
+            debugPrintHex(dataObjects[i].Value[0]);
+            debugPrintMsg("個目のタグについて");
+
+            response_sw1sw2.sw1 = dataObjects[i].Value[1];
+            response_sw1sw2.sw2 = dataObjects[i].Value[2];
+
+            return checkAPDU_sw1sw2_ErrStatus(response_sw1sw2);
+        }
+    }
+    return STATUS_ERROR;
+}
+
+// 4. 3 がOKなら TLV セットを解析
+std::vector<uint8_t> getCardResponse_from_TransparentExchangeResponse(const std::vector <APDU_DATA_OBJECT> dataObjects){
+    //TLVセットからカードの応答を取り出す
+    std::vector<uint8_t> cardResponse;
+    for(uint8_t i = 0; i < dataObjects.size(); i++){
+        if(dataObjects[i].Tag == 0x0097){
+            for(uint8_t j = 0; j < dataObjects[i].Length; j++){
+                //0初期化されているので途中で切れてても回し切ってよい
+                cardResponse.push_back(dataObjects[i].Value[j]);
+            }
+        }
+    }
+    return cardResponse;
+};
+
+NFC_TYPE_A_ATR getTypeA_ATR_from_SwitchProtocolResponse(const std::vector <APDU_DATA_OBJECT> dataObjects){
+    //今回の作品では使わないため後回し　次回作で使う予定
+    NFC_TYPE_A_ATR typeA_ATR = {0};
+    return typeA_ATR;
+}
+
+//4.10章 Switch Protocol
+NFC_TYPE_B_ATR getTypeB_ATR_from_SwitchProtocolResponse(const std::vector <APDU_DATA_OBJECT> dataObjects){
+
+    NFC_TYPE_B_ATR typeB_ATR = {0};
+
+    for(uint8_t dataObjNum = 0; dataObjNum < dataObjects.size(); dataObjNum++){
+        if(dataObjects[dataObjNum].Tag == 0x008F){
+            //protocolInfoしかない
+            if(dataObjects[dataObjNum].Length != 0x03){
+                debugPrintMsg("getTypeB_ATR_from_SwitchProtocolResponse:ERROR! Lengthが不正");
+                return typeB_ATR; //ゼロ埋めで返却
+            }
+            for (uint8_t valuePos = 0; valuePos < dataObjects[dataObjNum].Length; valuePos++)
+            {
+                typeB_ATR.atpbProtocolInfo[valuePos] = dataObjects[dataObjNum].Value[valuePos];
+            }
+            return typeB_ATR;
+        }
+        else if(dataObjects[dataObjNum].Tag == 0x5F51){
+            if(dataObjects[dataObjNum].Length != 0x0D){
+                debugPrintMsg("getTypeB_ATR_from_SwitchProtocolResponse:ERROR! Lengthが不正");
+                return typeB_ATR; //ゼロ埋めで返却
+            }
+            typeB_ATR.initialHeader = dataObjects[dataObjNum].Value[0];
+            typeB_ATR.t0            = dataObjects[dataObjNum].Value[1];
+            typeB_ATR.td1           = dataObjects[dataObjNum].Value[2];
+            typeB_ATR.td2           = dataObjects[dataObjNum].Value[3];
+
+            const uint8_t atpbAppDataLen      = sizeof(typeB_ATR.atpbAppData)/sizeof(typeB_ATR.atpbAppData[0]);
+            const uint8_t atpbProtocolInfoLen = sizeof(typeB_ATR.atpbProtocolInfo)/sizeof(typeB_ATR.atpbProtocolInfo[0]);
+
+            for (uint8_t valuePos = 0; valuePos < atpbAppDataLen; valuePos++)
+            {
+                typeB_ATR.atpbAppData[valuePos] = dataObjects[dataObjNum].Value[valuePos + 4];
+            }
+
+            for (uint8_t valuePos = 0; valuePos < atpbProtocolInfoLen; valuePos++)
+            {
+                typeB_ATR.atpbProtocolInfo[valuePos] = dataObjects[dataObjNum].Value[valuePos + 4 + atpbAppDataLen];
+            }
+
+            typeB_ATR.tck = dataObjects[dataObjNum].Value[4 + atpbAppDataLen + atpbProtocolInfoLen];
+
+            return typeB_ATR;
+        }
+    }
+
+    debugPrintMsg("getTypeB_ATR_from_SwitchProtocolResponse:ERROR! TypeB-ATRが見つからない");
+    return typeB_ATR; //ゼロ埋めで返却
+}
+
+
+/************************************************************************************/
+/*************************************** 道具 ***************************************/
+/************************************************************************************/
 
 uint8_t _checkTagSize(const uint16_t input_data_object_tag){
     //入力データのタグサイズを確認する

@@ -9,18 +9,19 @@ void setupSerial(void){
 
 
 //UART送信 Arduino用
-void sendUart(const uint8_t CommandFrame[], const uint16_t LEN){
+void uart_hw_sendUart(const uint8_t CommandFrame[], const uint16_t LEN){
 
     //ToDo 0から始まるはずなのにLEN要素まで入れないとダメ → 上位レイヤにバグがあるはず
+    //→ 配列の要素最後の番号をLENとして渡していた→LENは1始まり！
 
-    debugPrintMsg("sendUart_LEN = ");
+    debugPrintMsg("uart_hw_sendUart_LEN = ");
     debugPrintDec(LEN);
-    debugPrintMsg("sendUart_DATA = ");
-    for (size_t i = 0; i <= LEN; i++){
+    debugPrintMsg("uart_hw_sendUart_DATA = ");
+    for (size_t i = 0; i < LEN; i++){
         debugPrintHex(CommandFrame[i]);
     }
 
-    UART_RCS660S.write(CommandFrame, LEN+1);
+    UART_RCS660S.write(CommandFrame, LEN);
 
     return;
 }
@@ -34,7 +35,14 @@ uint8_t uart_hw_read(){
 }
 
 
+void uart_wait_ms(uint16_t ms){
+    delay(ms);
+    return;
+}
+
+
 void debugPrintMsg(const char* str){
+    UART_PC.print("\n");
     UART_PC.println(str);
     return;
 }

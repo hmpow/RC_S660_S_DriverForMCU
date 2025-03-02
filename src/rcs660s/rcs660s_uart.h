@@ -20,8 +20,8 @@
 /* タイムアウト設定 */
 /*******************/
 
-#define RECEIVE_ACK_TIMEOUT  20   //ACK受信タイムアウト時間(ms) > 10ms (マニュアル Ver1.0 p.15 図2-4)
-#define RECEIVE_DATA_TIMEOUT 2000 //データ受信タイムアウト時間(ms)
+#define RECEIVE_ACK_TIMEOUT        20 //ACK受信タイムアウト時間(ms) > 10ms (マニュアル Ver1.0 p.15 図2-4)
+#define RECEIVE_DATA_TIMEOUT     2000 //データ受信タイムアウト時間(ms)
 
 /*********************/
 /* マニュアル指定定数 */
@@ -37,7 +37,16 @@
 /*******************/
 
 void assemblyRcs660sUartCommandFrame(const uint8_t* , const uint16_t);
-void sendUart(const uint8_t* , const uint16_t);
+
+void uart_sendAck_MeaninglessStringsToPreventLinkErrors(void);
+
+// 関数名を uart_sendAck にしたいが undefined reference to とか言ってくる
+// たぶんhw層に同名関数置こうとしたときのゴミがmakefile辺りに残っているんだろうが
+// pioの内部まで構っている時間ないので無意味な文字列付与して回避
+
+// detail ResetDevice と Power Down で ACK 送信が必要
+// APDUコマンドの制約だがACKは2章(UART)で定義されているためuart層に関数を設ける 
+
 void uart_receiver_init(void);
 bool uart_receiver_checkACK(void);
 bool uart_receiver_receiveData(uint8_t[], uint16_t*);
