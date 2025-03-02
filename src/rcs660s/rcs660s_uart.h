@@ -37,7 +37,6 @@
 /*******************/
 
 void assemblyRcs660sUartCommandFrame(const uint8_t* , const uint16_t);
-void sendUart(const uint8_t* , const uint16_t);
 void uart_receiver_init(void);
 bool uart_receiver_checkACK(void);
 bool uart_receiver_receiveData(uint8_t[], uint16_t*);
