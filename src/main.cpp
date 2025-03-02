@@ -137,33 +137,7 @@ void loop() {
   uint8_t data[] = { 0x00,0xA4,0x00,0x00 };
   debugPrintMsg("****** SELECT MF CASE 1 *****\n");
   debugPrintMsg("WirelessCommand = {00 A4 00 00}, WirelessCommand_Len = 4,  timeout_ms = 0\n");
-  //Transceive_Func(data, (uint8_t)4, (uint16_t)0);
-
-/****************************/
-/****************************/
-/****************************/
-// 中身を出す
-
-APDU_DATA_OBJECT transmit_data_object = {0};
-
-//固定値(マニュアル指定値)
-transmit_data_object.Tag = (uint8_t)0x95; //Transceive
-
-//変数
-transmit_data_object.Length = 4;
-
-for(uint8_t i = 0; i < transmit_data_object.Length; i++){
-    transmit_data_object.Value[i] = data[i];
-}
-
-//Base関数へパス
-_assemblyAPDUcommand_TransparentExchange_Base(transmit_data_object, 0);
-
-/****************************/
-/****************************/
-/****************************/
-
-
+  assemblyAPDUcommand_TransparentExchange_Transceive(data, 4, 0);
 
   (void)receiveData(TEST_RX_MODE_W_TLV_AND_CARD_RES);
   /********************************************************/
@@ -172,7 +146,7 @@ _assemblyAPDUcommand_TransparentExchange_Base(transmit_data_object, 0);
   delay(TEST_INTERVAL_MS);
 
   debugPrintMsg("WirelessCommand = {00 A4 00 00}, WirelessCommand_Len = 4,  timeout_ms = 60\n");
-  //assemblyAPDUcommand_TransparentExchange_Transceive(data, 4, 60);
+  assemblyAPDUcommand_TransparentExchange_Transceive(data, 4, 60);
 
   (void)receiveData(TEST_RX_MODE_W_TLV_AND_CARD_RES);
   /********************************************************/
@@ -183,7 +157,7 @@ _assemblyAPDUcommand_TransparentExchange_Base(transmit_data_object, 0);
   debugPrintMsg("\n****** SELECT MF CASE 3 , P1 = 00 , P2 = 00  *****\n\n");
   const uint8_t data_2[] = {0x00,0xA4,0x00,0x00,0x02,0x3F,0x00};
   debugPrintMsg("WirelessCommand = {00,A4,00,00,02,3F,00}, WirelessCommand_Len = 7,  timeout_ms = 0\n");
-  //assemblyAPDUcommand_TransparentExchange_Transceive(data_2, 7, 0);
+  assemblyAPDUcommand_TransparentExchange_Transceive(data_2, 7, 0);
 
   (void)receiveData(TEST_RX_MODE_W_TLV_AND_CARD_RES);
   /********************************************************/

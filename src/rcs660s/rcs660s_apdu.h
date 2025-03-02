@@ -156,7 +156,7 @@ void assemblyAPDUcommand_ManageSession_TrunOnRfField(void);
 void assemblyAPDUcommand_TransparentExchange_TransmissionAndReceptionFlag(const bool, const bool, const uint8_t, const bool);
 
 //Transceveコマンド組み立て(無線コマンドarray,無線コマンドlen,受信タイムアウトms)
-void assemblyAPDUcommand_TransparentExchange_Transceive(const uint8_t*, const uint16_t, const uint8_t);
+void assemblyAPDUcommand_TransparentExchange_Transceive(const uint8_t*, const uint8_t, const uint16_t);
 
 //使わないため実装しない
 //void assemblyAPDUcommand_TransparentExchange_TransmissionBitFraming(uint8_t);

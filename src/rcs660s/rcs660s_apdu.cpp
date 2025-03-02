@@ -178,7 +178,6 @@ void assemblyAPDUcommand_TransparentExchange_TransmissionAndReceptionFlag(
     return;
 }
 
-
 //Transceveコマンド組み立て(無線コマンドarray,無線コマンドlen,受信タイムアウトms)
 void assemblyAPDUcommand_TransparentExchange_Transceive(const uint8_t WirelessCommand[], const uint8_t WirelessCommand_Len, const uint16_t timeout_ms){
 
