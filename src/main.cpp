@@ -5,6 +5,9 @@
 
 #define TEST_INTERVAL_MS 1000
 #define TEST_LOOP_INTERVAL_MS 30000
+#define TEST_TOUCH_WAIT_INTERVAL_MS TEST_INTERVAL_MS
+#define ERROR_OCCURED true
+#define ERROR_NOT_OCCURED false
 
 typedef enum _test_rx_mode{
   TEST_RX_MODE_WO_TLV = 0,
@@ -17,7 +20,7 @@ typedef enum _test_rx_mode{
 //マニュアル指定定数
 const uint8_t FULL_COMMAND_GetFirmWareVersion[] = {0x00, 0x00, 0xFF, 0x00, 0x0E, 0xF2, 0x6B, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x56, 0x00, 0x00, 0x3C, 0x00};
 
-void receiveData(TEST_RX_MODE);
+bool receiveData(TEST_RX_MODE);
 
 void setup() {
   // put your setup code here, to run once:
@@ -33,7 +36,7 @@ void loop() {
   debugPrintMsg("◆ リセットデバイス ◆");
   executeResetDeviceSequence();
   uart_receiver_init();
-  receiveData(TEST_RX_MODE_WO_TLV); //ResetDeviceの完了通知は来ないのでACKタイムアウトで待機代用
+  (void)receiveData(TEST_RX_MODE_WO_TLV); //ResetDeviceの完了通知は来ないのでACKタイムアウトで待機代用
   /*********************************************************************/
   debugPrintMsg("◆ レシーバ初期化 ◆");
   uart_receiver_init();
@@ -44,7 +47,7 @@ void loop() {
   assemblyAPDUcommand_GetFirmwareVersion();
   
   debugPrintMsg("◆ 受信 ◆");
-  receiveData(TEST_RX_MODE_WO_TLV);
+  (void)receiveData(TEST_RX_MODE_WO_TLV);
 
   /*********************************************************************/
   debugPrintMsg("◆ レシーバ初期化 ◆");
@@ -55,7 +58,7 @@ void loop() {
   assemblyAPDUcommand_ManageSession_StartTransparentSession();
 
   debugPrintMsg("◆ 受信 ◆");
-  receiveData(TEST_RX_MODE_W_TLV);
+  (void)receiveData(TEST_RX_MODE_W_TLV);
   /*********************************************************************/
   debugPrintMsg("◆ レシーバ初期化 ◆");
   uart_receiver_init();
@@ -65,12 +68,12 @@ void loop() {
   assemblyAPDUcommand_ManageSession_StartTransparentSession();
 
   debugPrintMsg("◆ 受信 ◆");
-  receiveData(TEST_RX_MODE_W_TLV);
+  (void)receiveData(TEST_RX_MODE_W_TLV);
   /*********************************************************************/
   debugPrintMsg("◆ リセットデバイス ◆");
   executeResetDeviceSequence();
   uart_receiver_init();
-  receiveData(TEST_RX_MODE_WO_TLV); //ResetDeviceの完了通知は来ないのでACKタイムアウトで待機代用
+  (void)receiveData(TEST_RX_MODE_WO_TLV); //ResetDeviceの完了通知は来ないのでACKタイムアウトで待機代用
   /*********************************************************************/
   debugPrintMsg("◆ レシーバ初期化 ◆");
   uart_receiver_init();
@@ -80,18 +83,23 @@ void loop() {
   assemblyAPDUcommand_ManageSession_StartTransparentSession();
 
   debugPrintMsg("◆ 受信 ◆");
-  receiveData(TEST_RX_MODE_W_TLV);
+  (void)receiveData(TEST_RX_MODE_W_TLV);
 
   debugPrintMsg("◆ レシーバ初期化 ◆");
   uart_receiver_init();
   delay(TEST_INTERVAL_MS);
   /*********************************************************************/
+  do{
+    debugPrintMsg("★★★★★★★★★★★★★★★★★★★★★★★★★★★");
+    debugPrintMsg("★★★★★NFC-TypeBカードをタッチしてください★★★★");
+    debugPrintMsg("★★★★★★★★★★★★★★★★★★★★★★★★★★★");
+    delay(TEST_TOUCH_WAIT_INTERVAL_MS);
 
-  debugPrintMsg("● assemblyAPDUcommand_SwitchProtocol_TypeB_AutoActivate");
-  assemblyAPDUcommand_SwitchProtocol_TypeB_AutoActivate();
+    debugPrintMsg("● assemblyAPDUcommand_SwitchProtocol_TypeB_AutoActivate");
+    assemblyAPDUcommand_SwitchProtocol_TypeB_AutoActivate();
+    debugPrintMsg("◆ 受信 ◆");
+  }while(receiveData(TEST_RX_MODE_W_TLV_AND_ATR_TYPE_B));
 
-  debugPrintMsg("◆ 受信 ◆");
-  receiveData(TEST_RX_MODE_W_TLV_AND_ATR_TYPE_B);
   /*********************************************************************/
   debugPrintMsg("◆ レシーバ初期化 ◆");
   uart_receiver_init();
@@ -101,7 +109,7 @@ void loop() {
   assemblyAPDUcommand_ManageSession_TrunOffRfField();
 
   debugPrintMsg("◆ 受信 ◆");
-  receiveData(TEST_RX_MODE_W_TLV);
+  (void)receiveData(TEST_RX_MODE_W_TLV);
 
  #if 0 
   debugPrintMsg("TEST debugPrintCCIDresponse_bError\n"); 
@@ -123,7 +131,7 @@ delay(TEST_LOOP_INTERVAL_MS);
 
 
 
-void receiveData(TEST_RX_MODE mode){
+bool receiveData(TEST_RX_MODE mode){
 
   debugPrintMsg("★★ 受信開始 ★★");
 
@@ -139,7 +147,7 @@ void receiveData(TEST_RX_MODE mode){
     debugPrintMsg("ACK OK");
   }else{
     debugPrintMsg("ACK NG");
-    return;
+    return ERROR_OCCURED;
   }
   
   //データ受信
@@ -165,9 +173,13 @@ void receiveData(TEST_RX_MODE mode){
     }
 
     debugPrintMsg("\ncheckAPDU_response_ErrStatus実行");
-    APDU_RESPONSE_ERROR_STATUS errStatus = checkAPDU_response_ErrStatus(apduData);
+    const APDU_RESPONSE_ERROR_STATUS errStatus = checkAPDU_response_ErrStatus(apduData);
     debugPrintMsg("checkAPDU_response_ErrStatus結果_enum = ");
     debugPrintDec(errStatus);
+
+    if(errStatus != STATUS_OK){
+      return ERROR_OCCURED;
+    }
 
     if(mode != TEST_RX_MODE_WO_TLV){
       debugPrintMsg("★★★★★★★★★ TLV解析 ★★★★★★★★★");
@@ -180,6 +192,9 @@ void receiveData(TEST_RX_MODE mode){
       const APDU_RESPONSE_ERROR_STATUS ares = checkAPDU_dataObject_ErrStatus(apduDataObj);
       debugPrintMsg("checkAPDU_dataObject_ErrStatus結果_enum = ");
       debugPrintDec(ares);
+      if(ares != STATUS_OK){
+        return ERROR_OCCURED;
+      }
 
       // 4. 3 がOKなら TLV セットを解析
       if(mode == TEST_RX_MODE_W_TLV_AND_CARD_RES){
@@ -224,5 +239,5 @@ void receiveData(TEST_RX_MODE mode){
   }
 
   debugPrintMsg("★★ 受信完了 ★★");
-  return;
+  return ERROR_NOT_OCCURED;
 }
