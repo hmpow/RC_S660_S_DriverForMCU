@@ -1,6 +1,8 @@
 #ifndef RCS660S_UART_H
 #define RCS660S_UART_H
 
+//#define UART_LAYER_DEBUG
+
 
 /* グローバル変数をヘッダに書かないこと！ */
 
@@ -21,7 +23,7 @@
 /*******************/
 
 #define RECEIVE_ACK_TIMEOUT        20 //ACK受信タイムアウト時間(ms) > 10ms (マニュアル Ver1.0 p.15 図2-4)
-#define RECEIVE_DATA_TIMEOUT     2000 //データ受信タイムアウト時間(ms)
+#define RECEIVE_DATA_TIMEOUT    60000 //データ受信タイムアウト時間(ms) ※十分に長くする リーダのタイムアウトより短いと途中でカード外すと領域外アイクセス発生
 
 /*********************/
 /* マニュアル指定定数 */

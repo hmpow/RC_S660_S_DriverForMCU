@@ -5,11 +5,15 @@ SONY RC-S660/S Driver for Microcontrollers (e.g., Arduino UNO R4 in the Platform
 
 Version 1.0 のコマンドリファレンスマニュアルベースで作成しています。
 
+![image](https://www.hmpower.jp/github_img/rc_s660s_driverformcu/about.gif)
+
 Arduinoを想定していますが、他のマイコンでも使用したいので uart ハードウェア部をカプセル化しています。
 
-※ .c ファイルで書いていた頃の名残で共通ヘッダファイル rcs660s_uart_hw_interface.h でクラスとインタフェースの関係な実現しています。
+※ .c ファイルで書いていた頃の名残で共通ヘッダファイル rcs660s_uart_hw_interface.h で、Java で言うクラスとインタフェースの関係を模擬実現しています。
 
 ### 設計せずに実装していたらスパゲッティコード化しました。
+
+アプリ公開用 I/F クラスを用意して臭い物に蓋をしておきますw
 
 このドライバを使う作品が完成したらリファクタリングしたい・・・
 

@@ -140,8 +140,10 @@ bool uart_receiver_checkACK(void){
   receiveState = RECEIVE_ACK;
   const unsigned long START_TIME = millis();
 
+#ifdef UART_LAYER_DEBUG
   debugPrintMsg("ACK START_TIME = ");
   debugPrintDec(START_TIME);
+#endif
 
   const uint8_t ACK_DATA_LEN = sizeof(FULL_COMMAND_ACK)/sizeof(FULL_COMMAND_ACK[0]); //ACKデータ長
 
@@ -154,14 +156,19 @@ bool uart_receiver_checkACK(void){
       //データがある場合：受信してチェック
       rx_data = UART_RCS660S.read();
 #if 0
+#ifdef UART_LAYER_DEBUG
       UART_PC.print(rx_data, HEX);
       UART_PC.print(" ");
+#endif
 #endif
       if(rx_data == FULL_COMMAND_ACK[rx_counter]){
         //OKの場合
         if(rx_counter == ACK_DATA_LEN - 1){
           //ACK受信完了
-          debugPrintMsg("ACK CHECK OK");
+          #ifdef UART_LAYER_DEBUG
+            debugPrintMsg("ACK CHECK OK");
+          #endif
+
           return true;
         }else{
           //次のデータへ
@@ -169,7 +176,7 @@ bool uart_receiver_checkACK(void){
         }
       }else{
         //ACKデータが正しくない場合
-        debugPrintMsg("ACK CHECK NG : WRONG PACKET");
+        debugPrintMsg("ERROR! ACK CHECK NG : WRONG PACKET");
         return false;
       }
     }else{
@@ -181,7 +188,7 @@ bool uart_receiver_checkACK(void){
   }
 
   //while抜けてきたらACK受信タイムアウト
-  debugPrintMsg("ACK CHECK NG : TIMEOUT");
+  debugPrintMsg("ERROR! ACK CHECK NG : TIMEOUT");
   return false;
 }
 
@@ -203,8 +210,10 @@ bool uart_receiver_receiveData(uint8_t receivePacketDataArr[], uint16_t *receive
   uint16_t data_sum_lower = 0;
   uint16_t data_dcs_sum = 0;
 
+#ifdef UART_LAYER_DEBUG
   debugPrintMsg("DATA START_TIME = ");
   debugPrintDec(START_TIME);
+#endif
 
   //データ受信
   uint8_t rx_counter = 0;
@@ -217,8 +226,10 @@ bool uart_receiver_receiveData(uint8_t receivePacketDataArr[], uint16_t *receive
       }
       receiveAllUartFrameArr[rx_counter] = UART_RCS660S.read();
 
-      debugPrintHex(receiveAllUartFrameArr[rx_counter]);
- 
+      #ifdef UART_LAYER_DEBUG
+        debugPrintHex(receiveAllUartFrameArr[rx_counter]);
+      #endif
+
       if(rx_counter == 0){
         //プリアンブルチェック
         if(receiveAllUartFrameArr[rx_counter] != PRE_AMBLE){
@@ -226,7 +237,9 @@ bool uart_receiver_receiveData(uint8_t receivePacketDataArr[], uint16_t *receive
           debugPrintMsg("DATA CHECK NG : WRONG PRE_AMBLE");
           return false;
         }
-        debugPrintMsg("PRE_AMBLE OK");
+        #ifdef UART_LAYER_DEBUG
+          debugPrintMsg("PRE_AMBLE OK");
+        #endif
       }
       else if(rx_counter == 1 || rx_counter == 2){
         //ステータスコードチェック
@@ -235,7 +248,9 @@ bool uart_receiver_receiveData(uint8_t receivePacketDataArr[], uint16_t *receive
           debugPrintMsg("DATA CHECK NG : WRONG STATUS_CODE");
           return false;
         }
-        debugPrintMsg("STATUS_CODE OK");
+        #ifdef UART_LAYER_DEBUG
+          debugPrintMsg("STATUS_CODE OK");
+        #endif
       }
       else if(rx_counter == 3 || rx_counter == 4){
         //特殊処理なし(LEN受信)
@@ -251,10 +266,15 @@ bool uart_receiver_receiveData(uint8_t receivePacketDataArr[], uint16_t *receive
           debugPrintMsg("DATA CHECK NG : WRONG LEN,LCS");
           return false;
         }
-        debugPrintMsg("LCS OK  Received_LEN(decimal) =");
+        #ifdef UART_LAYER_DEBUG
+          debugPrintMsg("LCS OK  Received_LEN(decimal) =");
+        #endif
+
         //OKなら16bitにまとめてLEN格納
         receiveDataLen = (receiveAllUartFrameArr[3] << 8) + receiveAllUartFrameArr[4];
-        debugPrintDec(receiveDataLen);
+        #ifdef UART_LAYER_DEBUG
+          debugPrintDec(receiveDataLen);
+        #endif
       }
       else if(6 <= rx_counter && rx_counter < (6 + receiveDataLen)){
         //データ受信
@@ -272,7 +292,9 @@ bool uart_receiver_receiveData(uint8_t receivePacketDataArr[], uint16_t *receive
           debugPrintMsg("DATA CHECK NG : WRONG DATA,DCS");
           return false;
         }
-        debugPrintMsg("DCS OK");
+        #ifdef UART_LAYER_DEBUG
+          debugPrintMsg("DCS OK");
+        #endif
       }
       else if(rx_counter == (6 + receiveDataLen + 1)){
         //ポストアンブルチェック
@@ -281,7 +303,9 @@ bool uart_receiver_receiveData(uint8_t receivePacketDataArr[], uint16_t *receive
           debugPrintMsg("DATA CHECK NG : WRONG POST_AMBLE");
           return false;
         }
-        debugPrintMsg("POST_AMBLE OK");
+        #ifdef UART_LAYER_DEBUG
+          debugPrintMsg("POST_AMBLE OK");
+        #endif
 
         break;
         /************* 受信完了 *************/
@@ -296,7 +320,7 @@ bool uart_receiver_receiveData(uint8_t receivePacketDataArr[], uint16_t *receive
     else{
       //データがない場合：タイムアウト時間内ならループ継続
       if(millis() - START_TIME > (unsigned long)RECEIVE_DATA_TIMEOUT){
-          debugPrintMsg("DATA RECEIVE TIME OUT");
+          debugPrintMsg("ERROR! DATA RECEIVE TIME OUT");
           return false;
       }
     }
