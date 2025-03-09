@@ -4,16 +4,27 @@
 
 #define TEST_INTERVAL_MS 1000
 #define TEST_LOOP_INTERVAL_MS 30000
-#define TEST_TOUCH_WAIT_INTERVAL_MS TEST_INTERVAL_MS
-#define ERROR_OCCURED true
-#define ERROR_NOT_OCCURED false
-
-
+#define TEST_WAIT_HUMAN_READABLE_INTERVAL_MS 5000
 
 //マニュアル指定定数
 const uint8_t FULL_COMMAND_GetFirmWareVersion[] = {0x00, 0x00, 0xFF, 0x00, 0x0E, 0xF2, 0x6B, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x56, 0x00, 0x00, 0x3C, 0x00};
 
 Rcs660sAppIf rcs660sAppIf;
+
+void printCardRes(const std::vector<uint8_t> vec){
+  if(vec.empty() == false){
+    debugPrintMsg("CARD RES START");
+    for (size_t i = 0; i < vec.size(); i++)
+    {
+      debugPrintHex(vec[i]);
+    }
+    debugPrintMsg("CARD RES END");
+  }else{
+    debugPrintMsg("ERROR! CARD RES is empty");
+  }
+  uart_wait_ms(TEST_WAIT_HUMAN_READABLE_INTERVAL_MS);
+  return;
+}
 
 void setup() {
   // put your setup code here, to run once:
@@ -42,61 +53,86 @@ void loop() {
 
   /*********************************************************************/
 
-  /*********************************************************************/
-
-  /*********************************************************************/
   rcs660sAppIf.setNfcType(NFC_TYPE_B);
   rcs660sAppIf.updateTxAndRxFlag({false, false, 3, false});
-  rcs660sAppIf.catchNfc(RETRY_CATCH_INFINITE);
+  bool isCatch = rcs660sAppIf.catchNfc(RETRY_CATCH_INFINITE);
 
-  /*********************************************************************/
-  /*********************************************************************/
-  /*********************************************************************/
-  debugPrintMsg("★★★★★★★★★★★★★★★★★★★★★★★★★★★");
-  debugPrintMsg("★★★★★★★★★ カードと通信開始 ★★★★★★★★★");
-  debugPrintMsg("★★★★★★★★★★★★★★★★★★★★★★★★★★★");
-  /*********************************************************************/
-  debugPrintMsg("◆ レシーバ初期化 ◆");
-  uart_receiver_init();
-  delay(TEST_INTERVAL_MS);
+  if(isCatch == E_OK){
+    debugPrintMsg("★★★★★★★★★★★★★★★★★★★★★★★★★★★");
+    debugPrintMsg("★★★★★★★★★ カードと通信開始 ★★★★★★★★★");
+    debugPrintMsg("★★★★★★★★★★★★★★★★★★★★★★★★★★★\n");
 
-  debugPrintMsg("【コマンド実行】assemblyAPDUcommand_Transparent_Exchange_Transceive\n");
-  uint8_t data[] = { 0x00,0xA4,0x00,0x00 };
-  debugPrintMsg("****** SELECT MF CASE 1 *****\n");
-  debugPrintMsg("WirelessCommand = {00 A4 00 00}, WirelessCommand_Len = 4,  timeout_ms = 0\n");
-  assemblyAPDUcommand_TransparentExchange_Transceive(data, 4, 0);
+    debugPrintMsg("★ MFを選択 Case0 タイムアウトなし ★");
+    uart_wait_ms(TEST_WAIT_HUMAN_READABLE_INTERVAL_MS);
 
-  (void)rcs660sAppIf.receiveSequence(TEST_RX_MODE_W_TLV_AND_CARD_RES);
-  /********************************************************/
-  debugPrintMsg("◆ レシーバ初期化 ◆");
-  uart_receiver_init();
-  delay(TEST_INTERVAL_MS);
+    const std::vector<uint8_t> selectMfCase0 = { 0x00,0xA4,0x00,0x00 };
+    std::vector<uint8_t> nfc_res;
 
-  debugPrintMsg("WirelessCommand = {00 A4 00 00}, WirelessCommand_Len = 4,  timeout_ms = 60\n");
-  assemblyAPDUcommand_TransparentExchange_Transceive(data, 4, 60);
+    nfc_res = rcs660sAppIf.communicateNfc(selectMfCase0, 0);
+    printCardRes(nfc_res);
 
-  (void)rcs660sAppIf.receiveSequence(TEST_RX_MODE_W_TLV_AND_CARD_RES);
-  /********************************************************/
-  debugPrintMsg("◆ レシーバ初期化 ◆");
-  uart_receiver_init();
-  delay(TEST_INTERVAL_MS);
+    /********************************************************/
 
-  debugPrintMsg("\n****** SELECT MF CASE 3 , P1 = 00 , P2 = 00  *****\n\n");
-  const uint8_t data_2[] = {0x00,0xA4,0x00,0x00,0x02,0x3F,0x00};
-  debugPrintMsg("WirelessCommand = {00,A4,00,00,02,3F,00}, WirelessCommand_Len = 7,  timeout_ms = 0\n");
-  assemblyAPDUcommand_TransparentExchange_Transceive(data_2, 7, 0);
+    uart_wait_ms(TEST_WAIT_HUMAN_READABLE_INTERVAL_MS);
+    if (nfc_res.empty() == false)
+    {
+      nfc_res.clear();
+    }
 
-  (void)rcs660sAppIf.receiveSequence(TEST_RX_MODE_W_TLV_AND_CARD_RES);
-  /********************************************************/
+    /********************************************************************/
+    debugPrintMsg("★ MFを選択 Case0 タイムアウト 60ms ★");
+    uart_wait_ms(TEST_WAIT_HUMAN_READABLE_INTERVAL_MS);
 
-  /*********************************************************************/
-  debugPrintMsg("★★★★★★★★★★★★★★★★★★★★★★★★★★★");
-  debugPrintMsg("★★★★★★★★★ カードと通信終了 ★★★★★★★★★");
-  debugPrintMsg("★★★★★★★★★★★★★★★★★★★★★★★★★★★");
+    nfc_res = rcs660sAppIf.communicateNfc(selectMfCase0, 60);
+    printCardRes(nfc_res);
 
-  /*********************************************************************/
-  /*********************************************************************/
-  /*********************************************************************/
+    /********************************************************/
+    
+    uart_wait_ms(TEST_WAIT_HUMAN_READABLE_INTERVAL_MS);
+    if (nfc_res.empty() == false)
+    {
+      nfc_res.clear();
+    }
+
+    /********************************************************************/
+    debugPrintMsg("★ MFを選択 Case3 タイムアウト10000 ★");
+    uart_wait_ms(TEST_WAIT_HUMAN_READABLE_INTERVAL_MS);
+
+    const std::vector<uint8_t> selectMfCase3 = {0x00,0xA4,0x00,0x00,0x02,0x3F,0x00};
+    
+    nfc_res = rcs660sAppIf.communicateNfc(selectMfCase3, 10000);
+    printCardRes(nfc_res);
+    
+    /********************************************************/
+
+    uart_wait_ms(TEST_WAIT_HUMAN_READABLE_INTERVAL_MS);
+    if (nfc_res.empty() == false)
+    {
+      nfc_res.clear();
+    }
+    debugPrintMsg("★ MFを選択 Case3 FCI応答なし 暗号化 タイムアウトなし ★");
+    uart_wait_ms(TEST_WAIT_HUMAN_READABLE_INTERVAL_MS);
+
+    const std::vector<uint8_t> selectMfCase3_NoFCI = {0x00,0xA4,0x00,0x0C,0x02,0x3F,0x00};
+  
+    nfc_res = rcs660sAppIf.communicateNfc(selectMfCase3_NoFCI, 0);
+    printCardRes(nfc_res);
+
+    /********************************************************/
+
+    uart_wait_ms(TEST_WAIT_HUMAN_READABLE_INTERVAL_MS);
+    if (nfc_res.empty() == false)
+    {
+      nfc_res.clear();
+    }
+
+    /********************************************************************/
+    debugPrintMsg("★★★★★★★★★★★★★★★★★★★★★★★★★★★");
+    debugPrintMsg("★★★★★★★★★ カードと通信終了 ★★★★★★★★★");
+    debugPrintMsg("★★★★★★★★★★★★★★★★★★★★★★★★★★★\n");
+    uart_wait_ms(TEST_WAIT_HUMAN_READABLE_INTERVAL_MS);
+  }
+
 
   delay(TEST_INTERVAL_MS);
   rcs660sAppIf.releaseNfc();

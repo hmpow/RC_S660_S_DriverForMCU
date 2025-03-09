@@ -10,8 +10,9 @@
 /********/
 
 #define TEST_MODE
-#define CATCH_RETRY_INTERVAL_MS 100
-#define BETWEEN_COMMANDS_INTERVAL_MS 20
+
+#define CATCH_RETRY_INTERVAL_MS 1000
+#define BETWEEN_COMMANDS_INTERVAL_MS 2000
 
 //目標：カードとアプリが直接通信しているように見せられる
 
@@ -78,7 +79,8 @@ class Rcs660sAppIf {
         void updateTxAndRxFlag(TX_AND_RX_FLAG);
 
         bool catchNfc(uint8_t);
-        std::vector<uint8_t> communicateNFC(const std::vector<uint8_t>);
+        std::vector<uint8_t> communicateNfc(const std::vector<uint8_t>, const uint16_t);
+        std::vector<uint8_t> getLatestNfcRes(void);
         void releaseNfc(void);
 
         
@@ -93,10 +95,14 @@ class Rcs660sAppIf {
         NFC_TYPE nfc_type;
         READER_STATE reader_state;
         TX_AND_RX_FLAG tx_and_rx_flag; //カード依存なのでアプリから設定することにする
+
+        std::vector<uint8_t> latest_nfc_res;
+
         bool is_tx_and_rx_flag_updated;
 
         void setReaderState(const READER_STATE);
         READER_STATE getReaderState(void);
+
 };
 
 #endif // RCS660S_APP_IF_H
