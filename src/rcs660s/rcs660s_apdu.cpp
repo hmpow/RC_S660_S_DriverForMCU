@@ -1,33 +1,6 @@
 #include "rcs660s_apdu.h"
 #include "rcs660s_uart.h"
 
-//NFC Typeの指定
-
-static NFC_TYPE g_nfc_type = NFC_TYPE_UNSET; //指定タイプに応じてAPDU層で閉じて動くようにする
-
-void initNfcType(void){
-    g_nfc_type = NFC_TYPE_UNSET;
-    return;
-}
-void setNfcTypeA(void){
-    g_nfc_type = NFC_TYPE_A;
-    return;
-}
-void setNfcTypeB(void){
-    g_nfc_type = NFC_TYPE_B;
-    return;
-}
-void setNfcTypeV(void){
-    g_nfc_type = NFC_TYPE_V;
-    return;
-}
-void setNfcTypeFeliCa(void){
-    g_nfc_type = NFC_TYPE_FELICA;
-    return;
-}
-NFC_TYPE getNfcType(void){
-    return g_nfc_type;
-}
 
 /************************************************************************************/
 /*************************************** 送信 ***************************************/
@@ -256,6 +229,7 @@ void assemblyAPDUcommand_ResetDevice(void){
     return;
 }
 
+//ResetDeviceでACK送るシーケンスはAPDUコマンドの都合であるためapdu層に実装
 void executeResetDeviceSequence(void){
     uart_receiver_init();
     assemblyAPDUcommand_ResetDevice();

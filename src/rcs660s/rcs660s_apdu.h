@@ -99,14 +99,6 @@ typedef struct _nfc_type_b_atr{
     uint8_t tck;
 }NFC_TYPE_B_ATR;
 
-typedef enum _nfc_type{
-    NFC_TYPE_UNSET = 0,
-    NFC_TYPE_A,
-    NFC_TYPE_B,
-    NFC_TYPE_V,
-    NFC_TYPE_FELICA
-}NFC_TYPE;
-
 //ToDo: APDU_DATA_OBJECTが複数あるとDataIn最大長超えるのでAPDU_COMMAND組み立て側でチェックする
 
 /******************/
@@ -118,7 +110,6 @@ void setNfcTypeA(void);
 void setNfcTypeB(void);
 void setNfcTypeV(void);
 void setNfcTypeFeliCa(void);
-NFC_TYPE getNfcType(void);
 
 /************************************************************************************/
 /*************************************** 送信 ***************************************/
