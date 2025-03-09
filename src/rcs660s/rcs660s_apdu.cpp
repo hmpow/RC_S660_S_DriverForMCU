@@ -255,6 +255,7 @@ void executeResetDeviceSequence(void){
           }
         }
         debugPrintMsg("ResetDevice SEND ACK!");
+
     #endif
 
         uart_sendAck();

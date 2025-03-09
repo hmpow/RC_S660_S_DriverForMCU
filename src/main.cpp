@@ -38,12 +38,14 @@ void loop() {
   debugPrintMsg("◆◆◆ テストループ開始 ◆◆◆");
   /*********************************************************************/
   debugPrintMsg("【コマンド実行】リセットデバイス");
+
   rcs660sAppIf.resetDevice();
   delay(TEST_INTERVAL_MS);
 
   /*********************************************************************/
   //rcs660 に GetFirmwareVersionを送信 マニュアルモード
   debugPrintMsg("【コマンド実行】GetFirmwareVersion");
+
   uart_receiver_init();
   assemblyAPDUcommand_GetFirmwareVersion();
   (void)rcs660sAppIf.receiveSequence(TEST_RX_MODE_WO_TLV);
