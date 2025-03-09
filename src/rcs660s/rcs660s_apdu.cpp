@@ -59,11 +59,13 @@ uint8_t passToCcidLayer(APDU_COMMAND input_apdu_command){
         arrAPDUcommand[5 + input_apdu_command.Lc] = input_apdu_command.Le;
     }
 
+#ifdef APDU_LAYER_DEBUG
     debugPrintMsg("\nSTART passToCcidLayer Test Output");
     for(int i = 0; i < arrSize; i++){
         debugPrintHex(arrAPDUcommand[i]);
     }
     debugPrintMsg("\nEND passToCcidLayer Test Output");
+#endif
 
     assemblyCCIDcommand_PC_to_RDR_Escape(arrAPDUcommand, arrSize, SeqNo);
 
@@ -234,12 +236,17 @@ void executeResetDeviceSequence(void){
     uart_receiver_init();
     assemblyAPDUcommand_ResetDevice();
     if(uart_receiver_checkACK()){
-        debugPrintMsg("ResetDevice ACK OK");
+
+        #ifdef APDU_LAYER_DEBUG
+            debugPrintMsg("ResetDevice ACK OK");
+        #endif
+
         uint8_t sprittedDataArr[RECEIVE_DATA_BUFF_SIZE];
         uint16_t sprittedDataLen = 0;
         bool isReceived = false;
         isReceived = uart_receiver_receiveData(sprittedDataArr, &sprittedDataLen); 
-  
+        
+    #ifdef APDU_LAYER_DEBUG
         if(isReceived){
           debugPrintMsg("ResetDevice RX SUCCESS\nDATA = ");
           for (size_t i = 0; i < sprittedDataLen; i++)
@@ -247,8 +254,9 @@ void executeResetDeviceSequence(void){
             debugPrintHex(sprittedDataArr[i]);
           }
         }
-
         debugPrintMsg("ResetDevice SEND ACK!");
+    #endif
+
         uart_sendAck();
 
         //ACK送信後にリーダー側でリセット完了を待つ
@@ -432,15 +440,19 @@ APDU_RESPONSE_ERROR_STATUS checkAPDU_response_ErrStatus(const std::vector<uint8_
 
 APDU_RESPONSE_ERROR_STATUS checkAPDU_sw1sw2_ErrStatus(const APDU_ERROR_STATUS inputSw1Sw2){
     //4.4章 APDUエラーステータス
-
+#ifdef APDU_LAYER_DEBUG
     debugPrintMsg("checkAPDU_sw1sw2_ErrStatus:APDU SW1 = ");
     debugPrintHex(inputSw1Sw2.sw1);
     debugPrintMsg("checkAPDU_sw1sw2_ErrStatus:APDU SW2 = ");
     debugPrintHex(inputSw1Sw2.sw2);
     debugPrintMsg("checkAPDU_sw1sw2_ErrStatus:CheckStatus"); 
+#endif
 
     if(inputSw1Sw2.sw1 == 0x90 && inputSw1Sw2.sw2 == 0x00){
-        debugPrintMsg("共通・TLV::正常終了");
+        #ifdef APDU_LAYER_DEBUG      
+            debugPrintMsg("共通・TLV::正常終了");
+        #endif
+        
         return STATUS_OK;
     }
 
@@ -557,9 +569,13 @@ std::vector <APDU_DATA_OBJECT> parseAPDU_response_DataObjects(const std::vector<
 
         //タグを取出し
         if (inputAbData[currentPos] == TWO_BYTE_TAG_FLAG_1 || inputAbData[currentPos] == TWO_BYTE_TAG_FLAG_2) {
-            debugPrintMsg("parseAPDU_response_DataObjects:2バイトタグ");
-            debugPrintHex(inputAbData[currentPos]);
-            debugPrintHex(inputAbData[currentPos + 1]);
+           
+            #ifdef APDU_LAYER_DEBUG
+                debugPrintMsg("parseAPDU_response_DataObjects:2バイトタグ");
+                debugPrintHex(inputAbData[currentPos]);
+                debugPrintHex(inputAbData[currentPos + 1]);
+            #endif
+            
             dataObj.Tag = (uint16_t)(inputAbData[currentPos] << 8);
             currentPos++;
             if(currentPos > dataLen){
@@ -569,8 +585,12 @@ std::vector <APDU_DATA_OBJECT> parseAPDU_response_DataObjects(const std::vector<
             }
             dataObj.Tag |= (uint16_t)inputAbData[currentPos];
         } else {
-            debugPrintMsg("parseAPDU_response_DataObjects:1バイトタグ");
-            debugPrintHex(inputAbData[currentPos]);
+
+            #ifdef APDU_LAYER_DEBUG
+                debugPrintMsg("parseAPDU_response_DataObjects:1バイトタグ");
+                debugPrintHex(inputAbData[currentPos]);
+            #endif
+
             dataObj.Tag = (uint16_t)inputAbData[currentPos];
         }
 
@@ -643,16 +663,22 @@ APDU_RESPONSE_ERROR_STATUS checkAPDU_dataObject_ErrStatus(const std::vector <APD
 
     for(uint8_t i = 0; i < dataObjects.size(); i++){
         if(dataObjects[i].Tag == 0x00C0){
-            debugPrintMsg("checkAPDU_dataObject_ErrStatus : input ErrStatus TLV");
-            debugPrintAPDU_singleDataOobjectTLV(dataObjects[i]);
+            
+            #ifdef APDU_LAYER_DEBUG
+                debugPrintMsg("checkAPDU_dataObject_ErrStatus : input ErrStatus TLV");
+                debugPrintAPDU_singleDataOobjectTLV(dataObjects[i]);
+            #endif
+
             if(dataObjects[i].Length != 0x03){
                 debugPrintMsg("checkAPDU_dataObject_ErrStatus : Lengthが不正");
                 return STATUS_ERROR;
             }
 
-            debugPrintMsg("checkAPDU_dataObject_ErrStatus :");
-            debugPrintHex(dataObjects[i].Value[0]);
-            debugPrintMsg("個目のタグについて");
+            #ifdef APDU_LAYER_DEBUG
+                debugPrintMsg("checkAPDU_dataObject_ErrStatus :");
+                debugPrintHex(dataObjects[i].Value[0]);
+                debugPrintMsg("個目のタグについて");
+            #endif
 
             response_sw1sw2.sw1 = dataObjects[i].Value[1];
             response_sw1sw2.sw2 = dataObjects[i].Value[2];

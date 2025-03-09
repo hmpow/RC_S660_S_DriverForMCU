@@ -1,6 +1,8 @@
 #ifndef RCS660S_UART_HW_ARDUINO_H
 #define RCS660S_UART_HW_ARDUINO_H
 
+//#define UART_HW_LAYER_DEBUG
+
 // 本番用
 // RC-S660S への出力　UART通信
 // RC-S660/S からの入力　UART通信

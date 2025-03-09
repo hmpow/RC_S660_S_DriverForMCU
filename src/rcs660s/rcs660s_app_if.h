@@ -1,30 +1,17 @@
 #ifndef RCS660S_APP_IF_H
 #define RCS660S_APP_IF_H
 
-
-
-
+//#define APP_IF_LAYER_DEBUG
 
 /********/
 /* 設定 */
 /********/
 
-#define TEST_MODE
-
-#define CATCH_RETRY_INTERVAL_MS 1000
-#define BETWEEN_COMMANDS_INTERVAL_MS 2000
+#define CATCH_RETRY_INTERVAL_MS 500
+#define BETWEEN_COMMANDS_INTERVAL_MS 50
 
 //目標：カードとアプリが直接通信しているように見せられる
-
-//public
-//コンストラクタ：カードタイプを指定してインスタンス化
-//デストラクタ：通信終了処理を行う
-//changeNfcType：カードタイプを変更する　終了→再設定→再開
-//catchNfc：カードを捕捉する　引数はリトライ回数
-//ctransceiveCard：NFC通信を行う　引数は送信データ、戻り値は受信データ　カードCRCの設定中
-//releaseCard：カードを解放する　終了
-//private
-//
+//AT車のようなクラス
 
 #include <stdint.h>
 #include <stdbool.h>

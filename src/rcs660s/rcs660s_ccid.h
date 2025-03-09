@@ -1,6 +1,8 @@
 #ifndef RCS660S_CCID_H
 #define RCS660S_CCID_H
 
+//#define CCID_LAYER_DEBUG
+
 #include <stdlib.h>
 //RC-S660/Sでサポート・カスタムされたCCIDコマンドを組み立てる
 #include <stdint.h>

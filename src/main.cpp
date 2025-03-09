@@ -4,7 +4,7 @@
 
 #define TEST_INTERVAL_MS 1000
 #define TEST_LOOP_INTERVAL_MS 30000
-#define TEST_WAIT_HUMAN_READABLE_INTERVAL_MS 5000
+#define TEST_WAIT_HUMAN_READABLE_INTERVAL_MS 3000
 
 //マニュアル指定定数
 const uint8_t FULL_COMMAND_GetFirmWareVersion[] = {0x00, 0x00, 0xFF, 0x00, 0x0E, 0xF2, 0x6B, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x56, 0x00, 0x00, 0x3C, 0x00};
@@ -42,15 +42,13 @@ void loop() {
   delay(TEST_INTERVAL_MS);
 
   /*********************************************************************/
-  debugPrintMsg("◆ レシーバ初期化 ◆");
-  uart_receiver_init();
-  delay(TEST_INTERVAL_MS);
-
-  //rcs660 に GetFirmwareVersionを送信
+  //rcs660 に GetFirmwareVersionを送信 マニュアルモード
   debugPrintMsg("【コマンド実行】GetFirmwareVersion");
+  uart_receiver_init();
   assemblyAPDUcommand_GetFirmwareVersion();
   (void)rcs660sAppIf.receiveSequence(TEST_RX_MODE_WO_TLV);
-
+  delay(TEST_INTERVAL_MS);
+  
   /*********************************************************************/
 
   rcs660sAppIf.setNfcType(NFC_TYPE_B);

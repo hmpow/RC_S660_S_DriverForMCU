@@ -101,6 +101,10 @@ bool Rcs660sAppIf::catchNfc(uint8_t retryCountSetting){
             debugPrintMsg("Rcs660sAppIf::catchNfc::リトライ中");
             uart_wait_ms(CATCH_RETRY_INTERVAL_MS);
         }
+
+        if(retryCountSetting == RETRY_CATCH_INFINITE){
+            tryCounter = 0; //毎回1回目扱いにする
+        }
        
         tryCounter++;
         rxStatus = E_NG;
@@ -124,10 +128,6 @@ bool Rcs660sAppIf::catchNfc(uint8_t retryCountSetting){
             default:
                 break;
         }
-
-        if(retryCountSetting == RETRY_CATCH_INFINITE){
-            tryCounter = 0;
-        }
         
     }while(rxStatus == E_NG && tryCounter < retryCountSetting);
 
@@ -143,13 +143,14 @@ bool Rcs660sAppIf::catchNfc(uint8_t retryCountSetting){
     if(is_tx_and_rx_flag_updated){
         //RC-S660/Sのデフォルトから変えたい場合のみ実行で良い
 
+#ifdef APP_IF_LAYER_DEBUG
         debugPrintMsg("Rcs660sAppIf::catchNfc::debug! TransmissionAndReceptionFlagを更新↓");
         debugPrintHex(tx_and_rx_flag.txDoNotAppendCRC);
         debugPrintHex(tx_and_rx_flag.rxDoNotDiscardCRC);
         debugPrintHex(tx_and_rx_flag.transceiveParity);
         debugPrintHex(tx_and_rx_flag.doNotAppendOrDiscardProcolProloge);
         debugPrintMsg("Rcs660sAppIf::catchNfc::debug! TransmissionAndReceptionFlagを更新↑");
-    
+#endif    
         uart_wait_ms(BETWEEN_COMMANDS_INTERVAL_MS);
         rxStatus = E_NG;
         uart_receiver_init();
@@ -164,7 +165,9 @@ bool Rcs660sAppIf::catchNfc(uint8_t retryCountSetting){
             debugPrintMsg("Rcs660sAppIf::catchNfc::WARNING! TransmissionAndReceptionFlag失敗 デフォルト動作します");
         }
     }else{
-        debugPrintMsg("Rcs660sAppIf::catchNfc::debug! TransmissionAndReceptionFlagは デフォルト動作します");
+        #ifdef APP_IF_LAYER_DEBUG
+            debugPrintMsg("Rcs660sAppIf::catchNfc::debug! TransmissionAndReceptionFlagは デフォルト動作します");
+        #endif
     }
 
     //TrunOnRfField実行
@@ -291,11 +294,6 @@ void Rcs660sAppIf::wakeup(void){
 
 void Rcs660sAppIf::resetDevice(void){
     executeResetDeviceSequence();
-#ifdef TEST_MODE   
-    //resetDeviceのACKに対するACNKは来ないのでACKタイムアウトで待機
-    (void)receiveSequence(TEST_RX_MODE_WO_TLV);
-    uart_receiver_init();
-#endif
     setReaderState(READER_READY);
     return;
 }
@@ -318,7 +316,9 @@ READER_STATE Rcs660sAppIf::getReaderState(void){
 //これが受信のひな型
 bool Rcs660sAppIf::receiveSequence(TEST_RX_MODE mode){
 
+#ifdef APP_IF_LAYER_DEBUG
   debugPrintMsg("★★ 受信開始 ★★");
+#endif
 
   uint8_t sprittedDataArr[RECEIVE_DATA_BUFF_SIZE];
   uint16_t sprittedDataLen = 0;
@@ -326,57 +326,87 @@ bool Rcs660sAppIf::receiveSequence(TEST_RX_MODE mode){
   bool isACKok = false;
 
   //ACK確認
-  debugPrintMsg("★ ACK ★");
   isACKok = uart_receiver_checkACK();
   if(isACKok){
-    debugPrintMsg("ACK OK");
+    #ifdef APP_IF_LAYER_DEBUG
+        debugPrintMsg("ACK OK");
+    #endif
   }else{
-    debugPrintMsg("ACK NG");
+    #ifdef APP_IF_LAYER_DEBUG
+        debugPrintMsg("ACK NG");
+    #endif
+
     return E_NG;
   }
   
   //データ受信
-  debugPrintMsg("★ データ ★");
 
   isReceived = uart_receiver_receiveData(sprittedDataArr, &sprittedDataLen); 
   
   if(isReceived){
-    debugPrintMsg("RX SUCCESS\nDATA = ");
-    for (size_t i = 0; i < sprittedDataLen; i++)
-    {
-      debugPrintHex(sprittedDataArr[i]);
-    }
+
+    #ifdef APP_IF_LAYER_DEBUG
+        debugPrintMsg("RX SUCCESS\nDATA = ");
+        for (size_t i = 0; i < sprittedDataLen; i++)
+        {
+        debugPrintHex(sprittedDataArr[i]);
+        }
+    #endif
+    
     isReceived = false;
 
-    debugPrintMsg("TEST CCID to APDU\n");
+    #ifdef APP_IF_LAYER_DEBUG
+        debugPrintMsg("TEST CCID to APDU\n");
+    #endif
     
     std::vector<uint8_t> apduData = parseCCIDresponse_RDR_to_PC_Escape(sprittedDataArr, sprittedDataLen);
-    debugPrintMsg("APDU DATA = ");
-    for (size_t i = 0; i < apduData.size(); i++)
-    {
-      debugPrintHex(apduData[i]);
-    }
+    
+    #ifdef APP_IF_LAYER_DEBUG
+        debugPrintMsg("APDU DATA = ");
+        for (size_t i = 0; i < apduData.size(); i++)
+        {
+        debugPrintHex(apduData[i]);
+        }
+    #endif
 
-    debugPrintMsg("\ncheckAPDU_response_ErrStatus実行");
+    #ifdef APP_IF_LAYER_DEBUG
+        debugPrintMsg("\ncheckAPDU_response_ErrStatus実行");
+    #endif
+
     const APDU_RESPONSE_ERROR_STATUS errStatus = checkAPDU_response_ErrStatus(apduData);
-    debugPrintMsg("checkAPDU_response_ErrStatus結果_enum = ");
-    debugPrintDec(errStatus);
+
+    #ifdef APP_IF_LAYER_DEBUG
+        debugPrintMsg("checkAPDU_response_ErrStatus結果_enum = ");
+        debugPrintDec(errStatus);
+    #endif
 
     if(errStatus != STATUS_OK){
       return E_NG;
     }
 
     if(mode != TEST_RX_MODE_WO_TLV){
-      debugPrintMsg("★★★★★★★★★ TLV解析 ★★★★★★★★★");
-      // 2. 1 が OK なら TLVのバイト列取出し
-      debugPrintMsg("parseAPDU_response_DataObjects実行");
-      const std::vector <APDU_DATA_OBJECT> apduDataObj = parseAPDU_response_DataObjects(apduData);
+        #ifdef APP_IF_LAYER_DEBUG
+            debugPrintMsg("★★★★★★★★★ TLV解析 ★★★★★★★★★");
+        #endif
 
-      // 3. 2 から TLV セットにエラーがないか確認
-      debugPrintMsg("checkAPDU_dataObject_ErrStatus実行");
-      const APDU_RESPONSE_ERROR_STATUS ares = checkAPDU_dataObject_ErrStatus(apduDataObj);
-      debugPrintMsg("checkAPDU_dataObject_ErrStatus結果_enum = ");
-      debugPrintDec(ares);
+        // 2. 1 が OK なら TLVのバイト列取出し
+        #ifdef APP_IF_LAYER_DEBUG
+            debugPrintMsg("parseAPDU_response_DataObjects実行");
+        #endif
+
+        const std::vector <APDU_DATA_OBJECT> apduDataObj = parseAPDU_response_DataObjects(apduData);
+
+        // 3. 2 から TLV セットにエラーがないか確認
+        #ifdef APP_IF_LAYER_DEBUG
+            debugPrintMsg("checkAPDU_dataObject_ErrStatus実行");
+        #endif
+        const APDU_RESPONSE_ERROR_STATUS ares = checkAPDU_dataObject_ErrStatus(apduDataObj);
+        
+        #ifdef APP_IF_LAYER_DEBUG
+            debugPrintMsg("checkAPDU_dataObject_ErrStatus結果_enum = ");
+            debugPrintDec(ares);
+        #endif
+
       if(ares != STATUS_OK){
         return E_NG;
       }
@@ -388,17 +418,19 @@ bool Rcs660sAppIf::receiveSequence(TEST_RX_MODE mode){
             latest_nfc_res.clear();
         }
 
-        debugPrintMsg("getCardResponse_from_TransparentExchangeResponse実行");
+        #ifdef APP_IF_LAYER_DEBUG
+            debugPrintMsg("getCardResponse_from_TransparentExchangeResponse実行");
+        #endif
+
         latest_nfc_res = getCardResponse_from_TransparentExchangeResponse(apduDataObj);
 
-
       }else if(mode == TEST_RX_MODE_W_TLV_AND_ATR_TYPE_B){
+        #ifdef APP_IF_LAYER_DEBUG
+            debugPrintMsg("getTypeB_ATR_from_SwitchProtocolResponse実行");
+        #endif
 
-        
-
-        debugPrintMsg("getTypeB_ATR_from_SwitchProtocolResponse実行");
         NFC_TYPE_B_ATR atr = getTypeB_ATR_from_SwitchProtocolResponse(apduDataObj);
-        debugPrintMsg("getTypeB_ATR_from_SwitchProtocolResponse結果 = ");
+
         debugPrintMsg("ATQB APP DATA");
         for (size_t i = 0; i < 4; i++)
         {
@@ -422,6 +454,5 @@ bool Rcs660sAppIf::receiveSequence(TEST_RX_MODE mode){
     debugPrintMsg("RX NO DATA");
   }
 
-  debugPrintMsg("★★ 受信完了 ★★");
   return E_OK;
 }

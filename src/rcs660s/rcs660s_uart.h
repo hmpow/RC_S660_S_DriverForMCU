@@ -1,6 +1,8 @@
 #ifndef RCS660S_UART_H
 #define RCS660S_UART_H
 
+//#define UART_LAYER_DEBUG
+
 
 /* グローバル変数をヘッダに書かないこと！ */
 

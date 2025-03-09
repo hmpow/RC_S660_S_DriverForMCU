@@ -3,6 +3,8 @@
 #ifndef RCS660S_APDU_H
 #define RCS660S_APDU_H
 
+//#define APDU_LAYER_DEBUG
+
 #include <stdint.h>
 #include <stdbool.h>
 

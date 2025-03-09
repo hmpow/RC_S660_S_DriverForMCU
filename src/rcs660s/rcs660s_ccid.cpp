@@ -143,11 +143,13 @@ std::vector<uint8_t> parseCCIDresponse_RDR_to_PC_Escape(const uint8_t* inputCCID
         return abData; //空のvectorを返す
     }
 
+#ifdef CCID_LAYER_DEBUG
     debugPrintMsg("parseCCIDresponse_RDR_to_PC_Escape :: dwLength (HEX) = ");
     debugPrintHex(dwLength);
 
     debugPrintMsg("parseCCIDresponse_RDR_to_PC_Escape :: abData.max_size() (HEX) = ");
     debugPrintHex(abData.max_size());
+#endif
 
     if(dwLength > abData.max_size()){
         debugPrintMsg("ERROR! parseCCIDresponse_RDR_to_PC_Escape :: dwLengthが長すぎます\n");
@@ -195,16 +197,22 @@ bool isOK_CCIDresponse_bStatus(const uint8_t bStatus){
         debugPrintMsg("isOK_CCIDresponse_bStatus :: bmICCStatus != 0x02\n");
         return false;
     }
-    debugPrintMsg("isOK_CCIDresponse_bStatus :: bmICCStatus OK!\n");
+    #ifdef CCID_LAYER_DEBUG
+        debugPrintMsg("isOK_CCIDresponse_bStatus :: bmICCStatus OK!\n");
+    #endif
 
     if(bmRFU != 0x00){
         debugPrintMsg("isOK_CCIDresponse_bStatus :: bmRFU != 0x02\n");
         return false;
     }
-    debugPrintMsg("isOK_CCIDresponse_bStatus :: bmRFU OK!\n");
+    #ifdef CCID_LAYER_DEBUG
+        debugPrintMsg("isOK_CCIDresponse_bStatus :: bmRFU OK!\n");
+    #endif
 
     if(bmCommandStatu == 0x00){
-        debugPrintMsg("isOK_CCIDresponse_bStatus :: bmCommandStatu OK!\n");
+        #ifdef CCID_LAYER_DEBUG
+            debugPrintMsg("isOK_CCIDresponse_bStatus :: bmCommandStatu OK!\n");
+        #endif
         return true;
     }else{
         debugPrintMsg("isOK_CCIDresponse_bStatus :: bmCommandStatu != 0x00\n");
