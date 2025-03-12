@@ -39,6 +39,7 @@ typedef struct _tx_and_rx_flag{
 
 //このクラスはapdu以下のシーケンスを隠ぺいして使いやすいI/F提供するAT車的な関数
 typedef enum _reader_state{
+    READER_UNINITIALIZED,
     READER_READY,        //電源ON RF-OFF  "N"で停車中相当
     READER_WAITING_CARD, //カード捕捉待ち  "D"で停車中相当
     READER_COMMUNICATE,  //カード捕捉中    "D"で走行中相当

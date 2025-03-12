@@ -8,13 +8,19 @@
 
 //コンストラクタ
 Rcs660sAppIf::Rcs660sAppIf(){
+#ifdef APP_IF_LAYER_DEBUG
+        debugPrintMsg("Rcs660sAppIf::コンストラクタが呼ばれた");
+#endif
     nfc_type = NFC_TYPE_UNSET;
-    reader_state = READER_READY;
+    reader_state = READER_UNINITIALIZED;
     is_tx_and_rx_flag_updated = false;
 }
 
 //デストラクタ
 Rcs660sAppIf::~Rcs660sAppIf(){
+#ifdef APP_IF_LAYER_DEBUG
+    debugPrintMsg("Rcs660sAppIf::デストラクタが呼ばれた");
+#endif
     releaseNfc();
 
     if(latest_nfc_res.empty() == false){
@@ -26,7 +32,15 @@ Rcs660sAppIf::~Rcs660sAppIf(){
 
 //setup関数で呼ぶ　コンストラクタと一体化するとタイミング制御できないため独立関数で定義
 void Rcs660sAppIf::begin(void){
+    if(getReaderState() != READER_UNINITIALIZED){
+#ifdef APP_IF_LAYER_DEBUG
+        debugPrintMsg("Rcs660sAppIf::begin::WARNING! 既に初期化済み");
+#endif
+        return;
+    }
     setupSerial();
+    setReaderState(READER_READY);
+
     return;
 }
 
@@ -207,8 +221,9 @@ std::vector<uint8_t> Rcs660sAppIf::communicateNfc(const std::vector<uint8_t> txD
 
     //Vector→配列
 
-    uint8_t txDataArr[txDataLen];
-    for (size_t i = 0; i < txDataLen; i++)
+    //uint8_t txDataArr[txDataLen];　//何故かコンパイル通ったが気持ち悪い
+    uint8_t* txDataArr = new uint8_t[txDataLen];
+    for (int i = 0; i < txDataLen; i++)
     {
         txDataArr[i] = txData[i];
     }
