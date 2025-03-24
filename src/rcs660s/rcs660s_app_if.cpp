@@ -8,9 +8,11 @@
 
 //コンストラクタ
 Rcs660sAppIf::Rcs660sAppIf(){
-#ifdef APP_IF_LAYER_DEBUG
-        debugPrintMsg("Rcs660sAppIf::コンストラクタが呼ばれた");
-#endif
+
+    #ifdef APP_IF_LAYER_DEBUG
+        printf("Rcs660sAppIf::コンストラクタが呼ばれた\r\n");
+    #endif
+
     nfc_type = NFC_TYPE_UNSET;
     reader_state = READER_UNINITIALIZED;
     is_tx_and_rx_flag_updated = false;
@@ -18,10 +20,14 @@ Rcs660sAppIf::Rcs660sAppIf(){
 
 //デストラクタ
 Rcs660sAppIf::~Rcs660sAppIf(){
-#ifdef APP_IF_LAYER_DEBUG
-    debugPrintMsg("Rcs660sAppIf::デストラクタが呼ばれた");
-#endif
-    releaseNfc();
+
+    #ifdef APP_IF_LAYER_DEBUG
+        printf("Rcs660sAppIf::デストラクタが呼ばれた\r\n");
+    #endif
+
+    if(getReaderState() == READER_COMMUNICATE){
+        releaseNfc();
+    }    
 
     if(latest_nfc_res.empty() == false){
         latest_nfc_res.clear();
@@ -112,7 +118,9 @@ bool Rcs660sAppIf::catchNfc(uint8_t retryCountSetting){
 
     do{
         if(tryCounter > 0){
-            debugPrintMsg("Rcs660sAppIf::catchNfc::リトライ中");
+            #ifdef APP_IF_LAYER_DEBUG
+                debugPrintMsg("Rcs660sAppIf::catchNfc::リトライ中");
+            #endif
             uart_wait_ms(CATCH_RETRY_INTERVAL_MS);
         }
 
@@ -445,7 +453,7 @@ bool Rcs660sAppIf::receiveSequence(TEST_RX_MODE mode){
         #endif
 
         NFC_TYPE_B_ATR atr = getTypeB_ATR_from_SwitchProtocolResponse(apduDataObj);
-
+    #ifdef APP_IF_LAYER_SHOW_ATQB
         debugPrintMsg("ATQB APP DATA");
         for (size_t i = 0; i < 4; i++)
         {
@@ -460,6 +468,7 @@ bool Rcs660sAppIf::receiveSequence(TEST_RX_MODE mode){
         debugPrintHex(atr.atqbAttrib);
 
         debugPrintMsg("ATQB END");
+    #endif
 
       }
     }

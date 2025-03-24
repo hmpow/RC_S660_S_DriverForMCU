@@ -2,12 +2,13 @@
 #define RCS660S_APP_IF_H
 
 //#define APP_IF_LAYER_DEBUG
+#define APP_IF_LAYER_SHOW_ATQB
 
 /********/
 /* 設定 */
 /********/
 
-#define CATCH_RETRY_INTERVAL_MS 500
+#define CATCH_RETRY_INTERVAL_MS 100
 #define BETWEEN_COMMANDS_INTERVAL_MS 50
 
 //目標：カードとアプリが直接通信しているように見せられる
