@@ -602,6 +602,14 @@ std::vector <APDU_DATA_OBJECT> parseAPDU_response_DataObjects(const std::vector<
             debugPrintMsg("parseAPDU_response_DataObjects:Error Lenがおかしい");
             break;
         }
+        
+/*81付きLEN対策 */
+
+        if(inputAbData[currentPos] == 0x81)
+        {
+            debugPrintMsg("parseAPDU_response_DataObjects:Info 0x81付きLen");
+            currentPos++;
+        }
         dataObj.Length = inputAbData[currentPos];
 
         //データの取得
