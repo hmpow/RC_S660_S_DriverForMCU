@@ -26,3 +26,13 @@ Arduinoを想定していますが、他のマイコンでも使用したいの�
 マイコンボード : Arduino UNO R4 WiFi
 
 PC : Windows 11 Pro, VSCode, PlatformIO
+
+**ハードウェアはArduino を使っていますが、PlatformIO 前提になっており、ArduinoIDEではビルドできません**
+
+## 回路例
+
+Arduino UNO R4 WiFi で使う場合の回路例です。
+
+RC-S660/S は UART が 3.3V 系であるため、レベル変換回路が必要になります。
+
+![image](https://www.hmpower.jp/github_img/rc_s660s_driverformcu/circuit.gif)
