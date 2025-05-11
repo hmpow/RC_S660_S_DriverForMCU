@@ -16,8 +16,7 @@ Arduinoを想定していますが、他のマイコンでも使用したいの�
 | 用途 | 使用する実体 | 使用例 |
 |---|---|---|
 | Arduinoアプリ | rcs660s_uart_hw_arduino.h | rcs660s_app_if.h のAPIをアプリから叩く |
-| UARTコマンドジェネレータ |rcs660s_uart_hw_windowspc.h<br>(src_winディレクトリ内にあります)  |1 main関数から各APIを叩いて実行<br>2 画面に表示されたコマンドをコピー&ペーストしてシリアル通信で送る
-  |
+| UARTコマンドジェネレータ |rcs660s_uart_hw_windowspc.h<br>(src_winディレクトリ内にあります)  |1 main関数から各APIを叩いて実行<br>2 画面に表示されたコマンドをコピー&ペーストしてシリアル通信で送る |
 | TeraTermマクロジェネレータ | rcs660s_uart_hw_windowspc.h<br>(src_winディレクトリ内にあります)  |1 main関数から各APIを叩いて実行<br>2 画面に表示されたコマンドをコピー&ペーストしてTTLファイルで保存<br>3 USBシリアルアダプタでRC-S660/Sを接続しTeraTermマクロ実行<br>詳細：https://www.hmcircuit.jp/nfc/rcs660_hands_on.html  |
 
 
