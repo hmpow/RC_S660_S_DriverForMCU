@@ -3,14 +3,11 @@
 
 //#define UART_LAYER_DEBUG
 
-
-/* グローバル変数をヘッダに書かないこと！ */
-
 /*****************************/
 /* 仕様ハードに合わせてinclude */
 /*****************************/
 
-//#include "rcs660s_uart_stub_visualstudio.h"
+//#include "rcs660s_uart_hw_windowspc.h"
 #include "rcs660s_uart_hw_arduino.h"
 
 /*****************************/
