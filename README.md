@@ -26,6 +26,8 @@ Arduinoを想定していますが、他のマイコンでも使用したいの�
 
 このドライバを使う作品が完成したらリファクタリングしたい・・・
 
+# Arduinoアプリ での使用
+
 ## 対応カード
 今のところ NFC-Type B + Type A の一部機能 です。
 
@@ -41,9 +43,7 @@ PC : Windows 11 Pro, VSCode, PlatformIO
 
 **ハードウェアはArduino を使っていますが、PlatformIO 前提になっており、ArduinoIDEではビルドできません**
 
-## Arduinoでの回路例
-
-Arduino UNO R4 WiFi で使う場合の回路例です。
+## Arduino UNO R4 WiFi での回路例
 
 RC-S660/S は UART が 3.3V 系であるため、レベル変換回路が必要になります。
 
