@@ -71,11 +71,9 @@ class Rcs660sAppIf {
         std::vector<uint8_t> communicateNfc(const std::vector<uint8_t>, const uint16_t);
         std::vector<uint8_t> getLatestNfcRes(void);
         void releaseNfc(void);
-
         
-        void powerDown(void);  //実装後回し
-        void wakeup(void); //実装後回し
-  
+        void powerDown(void);
+        void wakeup(void);   
         void resetDevice(void);
 
         bool receiveSequence(TEST_RX_MODE mode);
