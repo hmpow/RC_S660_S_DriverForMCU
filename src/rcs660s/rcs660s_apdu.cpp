@@ -285,6 +285,67 @@ void assemblyAPDUcommand_GetFirmwareVersion(void){
     return;
 }
 
+//4.13章 Power Down / Wake Up
+void assemblyAPDUcommand_PowerDown(void){
+    APDU_COMMAND powerDown_apdu_command = {0};
+
+    //固定値(マニュアル指定値)
+    powerDown_apdu_command.CLA = 0xFF;
+    powerDown_apdu_command.INS = 0x72;
+    powerDown_apdu_command.P1  = 0x00;
+    powerDown_apdu_command.P2  = 0x00;
+    powerDown_apdu_command.Lc  = LC_NO_DATA;     //Lcなし
+    //DataInなし
+    //Leなし
+
+    passToCcidLayer(powerDown_apdu_command);
+
+    return;
+}
+
+//Power Downコマンドの ACK受信完了後 10ms 以上待つ (4.13章)
+void executePowerDownSequence(void){
+    uart_receiver_init();
+    assemblyAPDUcommand_PowerDown();
+    if(uart_receiver_checkACK()){
+
+        #ifdef APDU_LAYER_DEBUG
+            debugPrintMsg("PowerDown ACK OK");
+        #endif
+
+        uint8_t sprittedDataArr[RECEIVE_DATA_BUFF_SIZE];
+        uint16_t sprittedDataLen = 0;
+        bool isReceived = false;
+        isReceived = uart_receiver_receiveData(sprittedDataArr, &sprittedDataLen); 
+        
+    #ifdef APDU_LAYER_DEBUG
+        if(isReceived){
+          debugPrintMsg("PowerDown RX SUCCESS\nDATA = ");
+          for (size_t i = 0; i < sprittedDataLen; i++)
+          {
+            debugPrintHex(sprittedDataArr[i]);
+          }
+        }
+    #endif
+        //PowerDownレスポンスに対するACKを送信 直後にパワーダウンが実行される
+        uart_sendAck();
+
+        //ACK送信後にリーダー側でパワーダウン完了を待つ
+        uart_wait_ms(MUST_WAIT_AFTER_POWER_DOWN);
+    }
+    return;
+}
+
+void assemblyAPDUcommand_WakeUp(void){
+    //1つのライジングエッジを与えてウェイクアップする
+    uart_sendSingleRisingEdge();
+
+    //待ち時間制約はAPDU層のマニュアル依存のためAPDU層で実装
+    uart_wait_ms(MUST_WAIT_AFTER_WAUEKUP);
+
+    return;
+}
+
 /********/
 /* BASE */
 /********/

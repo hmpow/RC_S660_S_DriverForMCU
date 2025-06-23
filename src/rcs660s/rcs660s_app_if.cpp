@@ -303,14 +303,26 @@ void Rcs660sAppIf::releaseNfc(void){
 }
 
 
-void Rcs660sAppIf::sleep(void){
-    //実装後回し
+void Rcs660sAppIf::powerDown(void){
+    if(getReaderState() != READER_READY){
+        debugPrintMsg("Rcs660sAppIf::powerDown::ERROR! READY状態でない");
+        return;
+    }
+    if(getReaderState() == READER_SLEEP){
+        debugPrintMsg("Rcs660sAppIf::powerDown::ERROR! 既にスリープ状態");
+        return;
+    }
+    executePowerDownSequence();
     setReaderState(READER_SLEEP);
     return;
 }
 
 void Rcs660sAppIf::wakeup(void){
-    //実装後回し
+    if(getReaderState() != READER_SLEEP){
+        debugPrintMsg("Rcs660sAppIf::wakeup::ERROR! スリープ状態でない");
+        return;
+    }
+    assemblyAPDUcommand_WakeUp();
     setReaderState(READER_READY);
     return;
 }

@@ -13,6 +13,9 @@ const uint8_t POST_AMBLE = 0x00;
 //マニュアル Ver1.0 p.14 ACKフレーム
 const uint8_t FULL_COMMAND_ACK[] = {0x00, 0x00, 0xFF, 0x00, 0x00, 0xFF, 0x00};
 
+//マニュアル Ver1.0 p.43 ウェイクアップ用シングルライジングエッジ
+const uint8_t SINGLE_RISING_EDGE[] = {0x01};
+
 //重要　const系はヘッダファイルに置いちゃダメ！ include先に実体がいっぱいできてしまう by chatGPT
 
 enum RECEIVE_STATE{
@@ -104,6 +107,15 @@ void assemblyRcs660sUartCommandFrame(const uint8_t wired_packet_data[], const ui
 
 void uart_sendAck(void) {
   uart_hw_sendUart(FULL_COMMAND_ACK, (uint16_t)(sizeof(FULL_COMMAND_ACK)/sizeof(FULL_COMMAND_ACK[0])));
+  return;
+}
+
+/**
+ * @brief ウェイクアップで使うためのシングルライジングエッジ送信
+ */
+
+void uart_sendSingleRisingEdge(void){
+  uart_hw_sendUart(SINGLE_RISING_EDGE, (uint16_t)(sizeof(SINGLE_RISING_EDGE)/sizeof(SINGLE_RISING_EDGE[0])));
   return;
 }
 

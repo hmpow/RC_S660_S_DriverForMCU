@@ -73,7 +73,7 @@ class Rcs660sAppIf {
         void releaseNfc(void);
 
         
-        void sleep(void);  //実装後回し
+        void powerDown(void);  //実装後回し
         void wakeup(void); //実装後回し
   
         void resetDevice(void);

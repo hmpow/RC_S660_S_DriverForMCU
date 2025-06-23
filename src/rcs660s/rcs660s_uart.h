@@ -4,7 +4,7 @@
 //#define UART_LAYER_DEBUG
 
 /*****************************/
-/* 仕様ハードに合わせてinclude */
+/* 使用ハードに合わせてinclude */
 /*****************************/
 
 //#include "rcs660s_uart_hw_windowspc.h"
@@ -38,6 +38,8 @@
 void assemblyRcs660sUartCommandFrame(const uint8_t* , const uint16_t);
 
 void uart_sendAck(void);
+
+void uart_sendSingleRisingEdge(void); //ウェイクアップで使うためのシングルライジングエッジ送信
 
 // detail ResetDevice と Power Down で ACK 送信が必要
 // APDUコマンドの制約だがACKは2章(UART)で定義されているためuart層に関数を設ける 

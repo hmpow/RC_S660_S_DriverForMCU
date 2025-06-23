@@ -178,6 +178,11 @@ void executeResetDeviceSequence(void);
 //4.12章 Get Firmware Version
 void assemblyAPDUcommand_GetFirmwareVersion(void);
 
+//4.13章 Power Down / Wake Up
+void assemblyAPDUcommand_PowerDown(void);
+void assemblyAPDUcommand_WakeUp(void);
+void executePowerDownSequence(void);
+
 //private
 //LoadKeys はType-A/Bでは使わないため実装しない
 //GeneralAuthenticate はType-A/Bでは使わないため実装しない
