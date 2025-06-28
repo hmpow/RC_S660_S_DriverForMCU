@@ -83,6 +83,12 @@ bool Rcs660sAppIf::catchNfc(uint8_t retryCountSetting){
         return E_NG;
     }
 
+    if(getReaderState() == READER_WAITING_CARD){
+        //ノンリエントラント
+        debugPrintMsg("Rcs660sAppIf::catchNfc::ERROR! 多重呼び出し");
+        return E_NG; 
+    }
+
     if(getReaderState() == READER_SLEEP){
         debugPrintMsg("Rcs660sAppIf::catchNfc::WARNING! スリープ中 起こす");
         wakeup();
@@ -97,6 +103,7 @@ bool Rcs660sAppIf::catchNfc(uint8_t retryCountSetting){
     //本体処理
 
     bool rxStatus = E_NG;
+    setReaderState(READER_WAITING_CARD);
 
     //StartTransParetnSession 実行
 
@@ -113,7 +120,6 @@ bool Rcs660sAppIf::catchNfc(uint8_t retryCountSetting){
 
 
     //本体
-
     uint8_t tryCounter = 0;
 
     do{
@@ -265,9 +271,15 @@ std::vector<uint8_t> Rcs660sAppIf::getLatestNfcRes(void){
 void Rcs660sAppIf::releaseNfc(void){
 
     if(getReaderState() != READER_COMMUNICATE){
-        debugPrintMsg("Rcs660sAppIf::releaseNfc::WARNING! 通信状態でないため処置不要");
-        return;
+        if(getReaderState() != READER_WAITING_CARD){
+            debugPrintMsg("Rcs660sAppIf::releaseNfc::WARNING! 通信状態でないため処置不要");
+            return;
+        }
     }
+    
+    #ifdef APP_IF_LAYER_DEBUG
+        debugPrintMsg("Rcs660sAppIf::releaseNfc::処置実行");
+    #endif
 
     bool rxStatus = E_NG;
 
@@ -442,51 +454,81 @@ bool Rcs660sAppIf::receiveSequence(TEST_RX_MODE mode){
             debugPrintDec(ares);
         #endif
 
-      if(ares != STATUS_OK){
-        return E_NG;
-      }
-
-      // 4. 3 がOKなら TLV セットを解析
-      if(mode == TEST_RX_MODE_W_TLV_AND_CARD_RES){
-
-        if(latest_nfc_res.empty() == false){
-            latest_nfc_res.clear();
+        if(ares != STATUS_OK){
+            return E_NG;
         }
 
-        #ifdef APP_IF_LAYER_DEBUG
-            debugPrintMsg("getCardResponse_from_TransparentExchangeResponse実行");
-        #endif
+        // 4. 3 がOKなら TLV セットを解析
 
-        latest_nfc_res = getCardResponse_from_TransparentExchangeResponse(apduDataObj);
+        // case 文内でローカル変数宣言はできない
+        NFC_TYPE_A_ATR atr_a = {0};
+        NFC_TYPE_B_ATR atr_b = {0};
 
-      }else if(mode == TEST_RX_MODE_W_TLV_AND_ATR_TYPE_B){
-        #ifdef APP_IF_LAYER_DEBUG
-            debugPrintMsg("getTypeB_ATR_from_SwitchProtocolResponse実行");
-        #endif
+        switch (mode) {
+            case TEST_RX_MODE_W_TLV_AND_CARD_RES:
 
-        NFC_TYPE_B_ATR atr = getTypeB_ATR_from_SwitchProtocolResponse(apduDataObj);
-    #ifdef APP_IF_LAYER_SHOW_ATQB
-        debugPrintMsg("ATQB APP DATA");
-        for (size_t i = 0; i < 4; i++)
-        {
-          debugPrintHex(atr.atpbAppData[i]);
+                if(latest_nfc_res.empty() == false){
+                    latest_nfc_res.clear();
+                }
+                #ifdef APP_IF_LAYER_DEBUG
+                    debugPrintMsg("getCardResponse_from_TransparentExchangeResponse実行");
+                #endif
+                latest_nfc_res = getCardResponse_from_TransparentExchangeResponse(apduDataObj);
+
+                break;
+
+            case TEST_RX_MODE_W_TLV_AND_ATR_TYPE_A:
+
+                #ifdef APP_IF_LAYER_DEBUG
+                    debugPrintMsg("getTypeA_ATR_from_SwitchProtocolResponse実行");
+                #endif
+
+                atr_a = getTypeA_ATR_from_SwitchProtocolResponse(apduDataObj);
+
+                #ifdef APP_IF_LAYER_SHOW_ATR
+                    debugPrintMsg("ATR_A ATS HistoricalBytes");
+                    for (size_t i = 0; i < atr_a.ATS_HistoricalBytes.size(); i++)
+                    {
+                        debugPrintHex(atr_a.ATS_HistoricalBytes[i]);
+                    }
+                    debugPrintMsg("\nATR_A END");
+                #endif
+
+                break;
+
+            case TEST_RX_MODE_W_TLV_AND_ATR_TYPE_B:
+
+                #ifdef APP_IF_LAYER_DEBUG
+                    debugPrintMsg("getTypeB_ATR_from_SwitchProtocolResponse実行");
+                #endif
+                
+                atr_b = getTypeB_ATR_from_SwitchProtocolResponse(apduDataObj);
+                
+                #ifdef APP_IF_LAYER_SHOW_ATR
+                    debugPrintMsg("ATQB APP DATA");
+                    for (size_t i = 0; i < 4; i++)
+                    {
+                    debugPrintHex(atr_b.atpbAppData[i]);
+                    }
+                    debugPrintMsg("ATQB PROTOCOL INFO");
+                    for (size_t i = 0; i < 3; i++)
+                    {
+                    debugPrintHex(atr_b.atpbProtocolInfo[i]);
+                    }
+                    debugPrintMsg("ATQB ATTRIB");
+                    debugPrintHex(atr_b.atqbAttrib);
+
+                    debugPrintMsg("ATQB END");
+                #endif
+
+                break;
+
+            default:
+                break;
         }
-        debugPrintMsg("ATQB PROTOCOL INFO");
-        for (size_t i = 0; i < 3; i++)
-        {
-          debugPrintHex(atr.atpbProtocolInfo[i]);
-        }
-        debugPrintMsg("ATQB ATTRIB");
-        debugPrintHex(atr.atqbAttrib);
-
-        debugPrintMsg("ATQB END");
-    #endif
-
-      }
     }
-
-
   }else{
+    //受信データなし
     debugPrintMsg("RX NO DATA");
   }
 
