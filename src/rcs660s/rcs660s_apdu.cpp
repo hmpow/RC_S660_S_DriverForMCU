@@ -774,20 +774,46 @@ std::vector<uint8_t> getCardResponse_from_TransparentExchangeResponse(const std:
     return cardResponse;
 };
 
+//4.10章 Switch Protocol
 NFC_TYPE_A_ATR getTypeA_ATR_from_SwitchProtocolResponse(const std::vector <APDU_DATA_OBJECT> dataObjects){
-    //今回の作品では使わないため後回し　次回作で使う予定
+
     NFC_TYPE_A_ATR typeA_ATR = {0};
-    return typeA_ATR;
+
+    for(uint8_t dataObjNum = 0; dataObjNum < dataObjects.size(); dataObjNum++){
+        if(dataObjects[dataObjNum].Tag == 0x5F51){
+            if(dataObjects[dataObjNum].Length < 0x06){
+                debugPrintMsg("getTypeA_ATR_from_SwitchProtocolResponse:ERROR! Lengthが不正");
+                return typeA_ATR; //ゼロ埋めで返却
+            }
+            typeA_ATR.initialHeader = dataObjects[dataObjNum].Value[0];
+            typeA_ATR.t0            = dataObjects[dataObjNum].Value[1];
+            typeA_ATR.td1           = dataObjects[dataObjNum].Value[2];
+            typeA_ATR.td2           = dataObjects[dataObjNum].Value[3];
+
+            const uint8_t atsHistoricalBytesLen = typeA_ATR.t0 & 0x0F; //T0の下位ニブルがヒストリカルバイト長
+
+            for (uint8_t valuePos = 0; valuePos < atsHistoricalBytesLen; valuePos++)
+            {
+                typeA_ATR.ATS_HistoricalBytes.push_back(dataObjects[dataObjNum].Value[valuePos + 4]);
+            }
+
+            typeA_ATR.tck = dataObjects[dataObjNum].Value[4 + atsHistoricalBytesLen];
+
+            return typeA_ATR;
+        }
+    }
+
+    debugPrintMsg("getTypeA_ATR_from_SwitchProtocolResponse:ERROR! TypeA-ATRが見つからない");
+    return typeA_ATR; //ゼロ埋めで返却
 }
 
-//4.10章 Switch Protocol
 NFC_TYPE_B_ATR getTypeB_ATR_from_SwitchProtocolResponse(const std::vector <APDU_DATA_OBJECT> dataObjects){
 
     NFC_TYPE_B_ATR typeB_ATR = {0};
 
     for(uint8_t dataObjNum = 0; dataObjNum < dataObjects.size(); dataObjNum++){
         if(dataObjects[dataObjNum].Tag == 0x008F){
-            //protocolInfoしかない
+            //protocolInfoしかない(4.10章 Reponse Data Objects 表)
             if(dataObjects[dataObjNum].Length != 0x03){
                 debugPrintMsg("getTypeB_ATR_from_SwitchProtocolResponse:ERROR! Lengthが不正");
                 return typeB_ATR; //ゼロ埋めで返却

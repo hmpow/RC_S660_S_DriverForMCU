@@ -1,7 +1,7 @@
 #ifndef RCS660S_APP_IF_H
 #define RCS660S_APP_IF_H
 
-#define APP_IF_LAYER_DEBUG
+//#define APP_IF_LAYER_DEBUG
 #define APP_IF_LAYER_SHOW_ATR
 
 /********/

@@ -6,9 +6,6 @@
 #define TEST_LOOP_INTERVAL_MS 30000 //シリアル出力を手動でコピペするための時間
 #define TEST_WAIT_HUMAN_READABLE_INTERVAL_MS 3000
 
-//マニュアルモードのテスト用 フルコマンド
-const uint8_t FULL_COMMAND_GetFirmWareVersion[] = {0x00, 0x00, 0xFF, 0x00, 0x0E, 0xF2, 0x6B, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x56, 0x00, 0x00, 0x3C, 0x00};
-
 Rcs660sAppIf rcs660sAppIf;
 
 void printCardRes(const std::vector<uint8_t> vec){
@@ -36,13 +33,16 @@ void loop() {
   // put your main code here, to run repeatedly:
 
   debugPrintMsg("◆◆◆ テストループ開始 ◆◆◆");
-  /*********************************************************************/
+  
+  /* TEST 1 リセットデバイス *********************************************/
+
   debugPrintMsg("リセットデバイス");
 
   rcs660sAppIf.resetDevice();
   delay(TEST_INTERVAL_MS);
 
-  /*********************************************************************/
+  /* TEST 2 APDU層をAppからコール ***************************************/
+
   //rcs660 に GetFirmwareVersionを送信 マニュアルモード
   debugPrintMsg("【マニュアルモード】GetFirmwareVersion");
 
@@ -50,20 +50,56 @@ void loop() {
   assemblyAPDUcommand_GetFirmwareVersion();
   (void)rcs660sAppIf.receiveSequence(TEST_RX_MODE_WO_TLV);
   delay(TEST_INTERVAL_MS);
+
+  /* TEST 3 NFC Type-A 捕捉(有限リトライ) ********************************/
+
+  debugPrintMsg("★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★");
+  debugPrintMsg("★★★★★★★★★ NFC-TypeA カードをタッチ ★★★★★★★★★");
+  debugPrintMsg("★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★\n");
   
-  /*********************************************************************/
+  uart_wait_ms(TEST_WAIT_HUMAN_READABLE_INTERVAL_MS);
+
+  //NFC Type-A通信用に設定
+  rcs660sAppIf.setNfcType(NFC_TYPE_A);
+  
+  //NFC-TypeAを捕捉 リトライ回数10
+  bool isCatch = rcs660sAppIf.catchNfc(10);
+
+  if(isCatch == E_OK){
+    debugPrintMsg("NFC-TypeA 捕捉 OK");
+  }else{
+    debugPrintMsg("NFC-TypeA 捕捉 NG");
+  }
+
+  //リリース NFC
+  delay(TEST_INTERVAL_MS);
+
+  debugPrintMsg("リリースNFC");
+  rcs660sAppIf.releaseNfc();
+
+  /* TEST 4 NFC Type-B 捕捉(無限リトライ)～通信 *******************************/
+
+  debugPrintMsg("★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★");
+  debugPrintMsg("★★★★★★★★★★ 従来型免許証 をタッチ ★★★★★★★★★★");
+  debugPrintMsg("★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★\n");
+  
+  uart_wait_ms(TEST_WAIT_HUMAN_READABLE_INTERVAL_MS);
 
   //従来型免許証通信用に設定
   rcs660sAppIf.setNfcType(NFC_TYPE_B);
   rcs660sAppIf.updateTxAndRxFlag({false, false, 3, false});
   
-  //NFC-TypeBを捕捉
-  bool isCatch = rcs660sAppIf.catchNfc(RETRY_CATCH_INFINITE);
+  //NFC-TypeBを捕捉　リトライ回数無限
+  isCatch = E_NG;
+  isCatch = rcs660sAppIf.catchNfc(RETRY_CATCH_INFINITE);
 
   if(isCatch == E_OK){
     debugPrintMsg("★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★");
     debugPrintMsg("★★★★★★★★★ 従来型免許証と通信開始 ★★★★★★★★★");
     debugPrintMsg("★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★\n");
+    
+    debugPrintMsg("★タイムアウトをテストする場合は免許証を離す★");
+    uart_wait_ms(TEST_WAIT_HUMAN_READABLE_INTERVAL_MS);
 
     debugPrintMsg("★ MFを選択 Case0 タイムアウトなし ★");
     uart_wait_ms(TEST_WAIT_HUMAN_READABLE_INTERVAL_MS);
@@ -146,6 +182,8 @@ void loop() {
   rcs660sAppIf.releaseNfc();
 
   delay(TEST_WAIT_HUMAN_READABLE_INTERVAL_MS);
+
+  /* TEST 5 パワーダウン・ウェイクアップ ***********************************/
 
   debugPrintMsg("パワーダウン");
   rcs660sAppIf.powerDown();
