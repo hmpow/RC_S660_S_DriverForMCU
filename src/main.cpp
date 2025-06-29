@@ -32,6 +32,8 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
 
+  std::vector<uint8_t> nfc_res;
+
   debugPrintMsg("◆◆◆ テストループ開始 ◆◆◆");
   
   /* TEST 1 リセットデバイス *********************************************/
@@ -61,12 +63,25 @@ void loop() {
 
   //NFC Type-A通信用に設定
   rcs660sAppIf.setNfcType(NFC_TYPE_A);
+  rcs660sAppIf.updateTxAndRxFlag({false, false, 0, false});
   
   //NFC-TypeAを捕捉 リトライ回数10
   bool isCatch = rcs660sAppIf.catchNfc(10);
 
   if(isCatch == E_OK){
     debugPrintMsg("NFC-TypeA 捕捉 OK");
+
+    //UID 読み出し ： RC-S660 のように返してくれないので GET DATA 無線コマンド叩く
+    debugPrintMsg("★ GET DATE で UID 取得 タイムアウト 100ms ★");
+    
+    //const std::vector<uint8_t> readUidTypeA = {0xFF, 0xCA, 0x00, 0x00, 0x00}; //JIS X 6320-4：2017 表89 偶数INS : 68 81 (CLAで示される機能は提供しない/指定された論理チャネルを提供していない) になる
+    const std::vector<uint8_t> readUidTypeA = {0xFF, 0xCB, 0x00, 0x00, 0x00}; //JIS X 6320-4：2017 表90 奇数INS : 68 81 (CLAで示される機能は提供しない/指定された論理チャネルを提供していない) になる
+
+
+    nfc_res = rcs660sAppIf.communicateNfc(readUidTypeA, 100);
+    
+    printCardRes(nfc_res);
+
   }else{
     debugPrintMsg("NFC-TypeA 捕捉 NG");
   }
@@ -76,6 +91,9 @@ void loop() {
 
   debugPrintMsg("リリースNFC");
   rcs660sAppIf.releaseNfc();
+
+  debugPrintMsg("Type A テスト終了 続いて Type B テスト");
+  uart_wait_ms(TEST_LOOP_INTERVAL_MS);
 
   /* TEST 4 NFC Type-B 捕捉(無限リトライ)～通信 *******************************/
 
@@ -99,13 +117,21 @@ void loop() {
     debugPrintMsg("★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★\n");
     
     debugPrintMsg("★タイムアウトをテストする場合は免許証を離す★");
+
+    /********************************************************/
+    
     uart_wait_ms(TEST_WAIT_HUMAN_READABLE_INTERVAL_MS);
+    if (nfc_res.empty() == false)
+    {
+      nfc_res.clear();
+    }
+
+    /********************************************************************/
 
     debugPrintMsg("★ MFを選択 Case0 タイムアウトなし ★");
     uart_wait_ms(TEST_WAIT_HUMAN_READABLE_INTERVAL_MS);
 
     const std::vector<uint8_t> selectMfCase0 = { 0x00,0xA4,0x00,0x00 };
-    std::vector<uint8_t> nfc_res;
 
     nfc_res = rcs660sAppIf.communicateNfc(selectMfCase0, 0);
     printCardRes(nfc_res);
