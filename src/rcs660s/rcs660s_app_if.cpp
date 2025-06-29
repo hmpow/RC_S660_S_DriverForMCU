@@ -172,12 +172,12 @@ bool Rcs660sAppIf::catchNfc(uint8_t retryCountSetting){
         //RC-S660/Sのデフォルトから変えたい場合のみ実行で良い
 
 #ifdef APP_IF_LAYER_DEBUG
-        debugPrintMsg("Rcs660sAppIf::catchNfc::debug! TransmissionAndReceptionFlagを更新↓");
+        debugPrintMsg("Rcs660sAppIf::catchNfc::debug! TransmissionAndReceptionFlagを更新 (4.9章の表) ↓");
         debugPrintHex(tx_and_rx_flag.txDoNotAppendCRC);
         debugPrintHex(tx_and_rx_flag.rxDoNotDiscardCRC);
         debugPrintHex(tx_and_rx_flag.transceiveParity);
         debugPrintHex(tx_and_rx_flag.doNotAppendOrDiscardProcolProloge);
-        debugPrintMsg("Rcs660sAppIf::catchNfc::debug! TransmissionAndReceptionFlagを更新↑");
+        debugPrintMsg("Rcs660sAppIf::catchNfc::debug! TransmissionAndReceptionFlagを更新 (4.9章の表) ↑");
 #endif    
         uart_wait_ms(BETWEEN_COMMANDS_INTERVAL_MS);
         rxStatus = E_NG;
@@ -237,10 +237,22 @@ std::vector<uint8_t> Rcs660sAppIf::communicateNfc(const std::vector<uint8_t> txD
 
     //uint8_t txDataArr[txDataLen];　//何故かコンパイル通ったが気持ち悪い
     uint8_t* txDataArr = new uint8_t[txDataLen];
+    
+    #ifdef APP_IF_LAYER_DEBUG
+        debugPrintMsg("Rcs660sAppIf::communicateNfc::カードへの送信データ");
+    #endif
+
     for (int i = 0; i < txDataLen; i++)
     {
         txDataArr[i] = txData[i];
+    
+        #ifdef APP_IF_LAYER_DEBUG
+            debugPrintHex(txDataArr[i]);
+        #endif
     }
+    #ifdef APP_IF_LAYER_DEBUG
+        debugPrintMsg("\n");
+    #endif
     
     //受信履歴クリア
     if(latest_nfc_res.empty() == false){
